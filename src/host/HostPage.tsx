@@ -136,7 +136,7 @@ export function HostPage() {
         </section>
 
         <section className="col col-right" aria-label="Live readout and audience">
-          <ReadoutCard mode={shownMode} pet={state?.pet ?? null} circuit={state?.circuit?.result ?? null} switchClosed={state?.circuit?.switchClosed} petName={creation?.pet?.name} />
+          <ReadoutCard mode={shownMode} pet={creation?.mode === "pet" ? state?.pet ?? null : null} circuit={state?.circuit?.result ?? null} switchClosed={state?.circuit?.switchClosed} petName={creation?.pet?.name} />
           {shownMode === 'pet' && <AskCard state={state} petName={petName} />}
           <AudienceCard state={state} />
           <ApiStatusCard state={state} />
