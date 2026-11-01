@@ -13,11 +13,11 @@ import { DEFAULT_PET } from '../../shared/creations';
 import type { PetActionName, PetSpec, SketchMode } from '../../shared/creations';
 
 /** Backend adds setPetAction to the session; called defensively so this compiles before/after. */
-type PetActionSetter = { setPetAction?: (action: PetActionName, opts?: { expectedEpoch?: number }) => unknown };
-function applyPetAction(session: LiveSessionApi, action: PetActionName, epoch: number): { ok: boolean; reason?: string } {
+type PetActionSetter = { setPetAction?: (action: PetActionName, by?: string | null) => unknown };
+function applyPetAction(session: LiveSessionApi, action: PetActionName): { ok: boolean; reason?: string } {
   const fn = (session as unknown as PetActionSetter).setPetAction;
   if (typeof fn !== 'function') return { ok: false, reason: 'This server cannot animate the pet yet.' };
-  const r = fn.call(session, action, { expectedEpoch: epoch }) as { ok?: boolean; reason?: string } | void;
+  const r = fn.call(session, action, null) as { ok?: boolean; reason?: string } | void;
   if (r && typeof r === 'object' && r.ok === false) return { ok: false, reason: r.reason ?? 'Not applied.' };
   return { ok: true };
 }
@@ -249,6 +249,7 @@ export function createAiRouter(session: LiveSessionApi, openai: OpenAIAdapter): 
     const st = session.getState();
     if (!st.pet) return sendError(res, 409, 'no_pet', 'Build a pet first.');
     const facts = petFacts(st.pet, spec);
+    const version = st.creation?.version;
     askBusy = true;
     session.setBeanThinking(true);
     try {
@@ -277,10 +278,10 @@ export function createAiRouter(session: LiveSessionApi, openai: OpenAIAdapter): 
       const now = session.getState();
       let applied = false;
       let notAppliedReason: string | undefined;
-      if (now.sim.epoch !== epoch || now.creation?.mode !== 'pet') {
-        notAppliedReason = 'The session was reset while the pet was thinking — nothing was changed.';
+      if (now.sim.epoch !== epoch || now.creation?.mode !== 'pet' || now.creation.version !== version) {
+        notAppliedReason = 'The pet was rebuilt or reset while it was thinking — nothing was changed.';
       } else {
-        const r = applyPetAction(session, action, epoch);
+        const r = applyPetAction(session, action);
         applied = r.ok;
         notAppliedReason = r.reason;
       }
