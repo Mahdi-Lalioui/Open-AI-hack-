@@ -194,3 +194,10 @@
 .guest .guest-live{background:var(--vd-blue-deep);border:1px solid rgba(214,229,240,.16);border-radius:var(--r);color:var(--vd-chalk)}
 .guest .guest-now{color:var(--vd-chalk-soft)}
 .guest .guest-emblem{color:var(--vd-chalk);background:rgba(214,229,240,.12);border-color:rgba(214,229,240,.2)}
+
+/* The older page styles set their own ground, so the audience page needs saying twice. */
+.app.guest{background-color:var(--vd-blue)!important;background-image:linear-gradient(var(--vd-blue-line) 1px,transparent 1px),linear-gradient(90deg,var(--vd-blue-line) 1px,transparent 1px)!important;background-size:32px 32px!important}
+.guest .guest-main,.guest .guest-main::before,.guest .guest-main::after{background:transparent!important}
+.guest .guest-live p,.guest .guest-live strong{color:var(--vd-chalk)}
+.guest .guest-action strong{color:var(--ink)}
+.guest .msg{color:var(--ink)}

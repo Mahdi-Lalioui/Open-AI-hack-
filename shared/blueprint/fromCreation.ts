@@ -141,7 +141,7 @@ export function circuitToBlueprint(circuit: CircuitSpec): DesignBlueprint {
     materials: [
       material('board', 'Green board', '#2F7D4F', 0.7),
       material('copper', 'Copper', '#B87333', 0.35, 0.9),
-      ...Object.values(CIRCUIT_MATERIAL).map((id) => material(id, `${id[0].toUpperCase()}${id.slice(1)}`, {
+      ...[...new Set(circuit.components.map((c) => CIRCUIT_MATERIAL[c.type]))].map((id) => material(id, id === 'led' ? 'LED' : `${id[0].toUpperCase()}${id.slice(1)}`, {
         battery: '#2E3440', resistor: '#C89B6B', led: '#E8735A', bulb: '#F2D16B', switch: '#4A5160',
       }[id] as string, 0.5)),
     ],

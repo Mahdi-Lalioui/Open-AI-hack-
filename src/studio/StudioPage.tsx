@@ -416,10 +416,6 @@ export function StudioPage() {
             </div>
           )}
 
-          {design && liveMode && view === 'live' && (
-            <LiveCards blueprint={design.blueprint} version={design.version} state={liveState} connected={connection === 'online'} busy={Boolean(busy)} onApply={onEdit} />
-          )}
-
           {design && (
             <Card id="refine" title="Refine it" className="studio-refine">
               <form
@@ -450,6 +446,10 @@ export function StudioPage() {
                 <div className="uncertain" data-testid="assumptions"><p className="uncertain-title">Assumed:</p><ul>{design.blueprint.assumptions.map((a) => <li key={a}>{a}</li>)}</ul></div>
               )}
             </Card>
+          )}
+
+          {design && liveMode && view === 'live' && (
+            <LiveCards blueprint={design.blueprint} version={design.version} state={liveState} connected={connection === 'online'} busy={Boolean(busy)} onApply={onEdit} />
           )}
         </section>
 

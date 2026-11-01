@@ -79,7 +79,7 @@ describe('POST /api/vision/analyze, upload validation', () => {
     const { app } = setup();
     const r = await request(app).post('/api/vision/analyze?mode=pet').set('Content-Type', 'image/png').send(PNG);
     expect([r.status, r.body.code]).toEqual([503, 'not_configured']);
-    expect(r.body.error).toMatch(/example mode/);
+    expect(r.body.error).toMatch(/built-in example/);
   });
   it('400 for an unknown mode', async () => {
     const { app } = setup({ key: true });

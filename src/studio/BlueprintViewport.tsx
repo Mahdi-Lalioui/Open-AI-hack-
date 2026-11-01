@@ -1,6 +1,6 @@
 /** Interactive 3D view of a Blueprint. Geometry comes from shared/blueprint/geometry, the same as the exports. */
 import { ContactShadows, Grid, OrbitControls } from '@react-three/drei';
-import { Canvas, useFrame, type ThreeEvent } from '@react-three/fiber';
+import { Canvas, useFrame, useThree, type ThreeEvent } from '@react-three/fiber';
 import { Component, useEffect, useMemo, useRef, type ReactNode } from 'react';
 import * as THREE from 'three';
 import { clipPhase, clipPose, designBounds, primitiveMesh, rotationQuaternion, toRenderMesh, worldMesh, meshBounds } from '../../shared/blueprint/geometry';
@@ -9,6 +9,8 @@ import { hasWebGL } from '../scene/World';
 
 const REVEAL_SECONDS = 0.9;
 const STAGGER_SECONDS = 0.05;
+const HOME_POSITION: [number, number, number] = [3, 2.9, 4.8];
+const HOME_TARGET: [number, number, number] = [0, 1, 0];
 
 class Boundary extends Component<{ fallback: ReactNode; children: ReactNode }, { failed: boolean }> {
   state = { failed: false };
@@ -116,12 +118,17 @@ function Scene({ blueprint, revealKey, selected, onSelect, clip, explode, spin, 
   const size = Math.max(bounds.max.x - bounds.min.x, bounds.max.y - bounds.min.y, bounds.max.z - bounds.min.z, 1);
   const scale = 2.4 / size; // mm -> scene units, so lights and controls suit any object
   const materials = useMemo(() => new Map(blueprint.materials.map((m) => [m.id, m])), [blueprint.materials]);
-  const controls = useRef<{ reset: () => void } | null>(null);
+  const controls = useRef<{ target: THREE.Vector3; update: () => void } | null>(null);
+  const camera = useThree((s) => s.camera);
   const seen = useRef<string | null>(null);
   const isNew = seen.current !== revealKey;
   seen.current = revealKey;
 
-  useEffect(() => { controls.current?.reset(); }, [resetNonce, revealKey]);
+  useEffect(() => {
+    camera.position.set(...HOME_POSITION);
+    controls.current?.target.set(...HOME_TARGET);
+    controls.current?.update();
+  }, [resetNonce, revealKey, camera]);
 
   return (
     <>
@@ -163,7 +170,7 @@ function Scene({ blueprint, revealKey, selected, onSelect, clip, explode, spin, 
       <OrbitControls
         ref={controls as never}
         makeDefault
-        target={[0, 1, 0]}
+        target={HOME_TARGET}
         enablePan={false}
         minDistance={1.6}
         maxDistance={12}
@@ -180,7 +187,7 @@ export function BlueprintViewport(props: ViewportProps & { fallback: ReactNode }
   return (
     <Boundary fallback={props.fallback}>
       <Canvas
-        camera={{ position: [3, 2.9, 4.8], fov: 40, near: 0.05, far: 60 }}
+        camera={{ position: HOME_POSITION, fov: 40, near: 0.05, far: 60 }}
         dpr={[1, 2]}
         gl={{ preserveDrawingBuffer: true }}
         onPointerMissed={() => props.onSelect(null)}

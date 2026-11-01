@@ -90,32 +90,34 @@ export function Hero({ reducedMotion }: { reducedMotion: boolean }) {
       </div>
 
       <div className="lp-hero-work">
-        <div className="lp-sheet-under" aria-hidden="true" />
-        <div ref={sheet} className="lp-sheet">
-          <span className="lp-tape lp-tape--left" aria-hidden="true" />
-          <span className="lp-tape lp-tape--right" aria-hidden="true" />
-          <div className="lp-sheet-stage">
-            <div className="lp-frame">
-              <LandingViewport
-                blueprint={model.blueprint}
-                revealKey={`hero:${built}`}
-                clip={moving ? clip : null}
-                spin={moving}
-                reducedMotion={reducedMotion}
-                hidden={phase === 'sketch'}
-              />
-              {(!webgl || (!reducedMotion && phase !== 'live')) && (
-                <SketchLines blueprint={design.blueprint} drawKey={`${design.id}:${run}`} animate={webgl && !reducedMotion} className={phase === 'solid' ? 'is-fading' : ''} />
-              )}
+        <div className="lp-sheet-pile">
+          <div className="lp-sheet-under" aria-hidden="true" />
+          <div ref={sheet} className="lp-sheet">
+            <span className="lp-tape lp-tape--left" aria-hidden="true" />
+            <span className="lp-tape lp-tape--right" aria-hidden="true" />
+            <div className="lp-sheet-stage">
+              <div className="lp-frame">
+                <LandingViewport
+                  blueprint={model.blueprint}
+                  revealKey={`hero:${built}`}
+                  clip={moving ? clip : null}
+                  spin={moving}
+                  reducedMotion={reducedMotion}
+                  hidden={phase === 'sketch'}
+                />
+                {(!webgl || (!reducedMotion && phase !== 'live')) && (
+                  <SketchLines blueprint={design.blueprint} drawKey={`${design.id}:${run}`} animate={webgl && !reducedMotion} className={phase === 'solid' ? 'is-fading' : ''} />
+                )}
+              </div>
+              {note && !reducedMotion && webgl && <span className="lp-note" key={note} aria-hidden="true">{note}</span>}
             </div>
-            {note && !reducedMotion && webgl && <span className="lp-note" key={note} aria-hidden="true">{note}</span>}
+            <dl className="lp-titleblock">
+              <div className="lp-tb-name"><dt>Design</dt><dd>{design.title}</dd></div>
+              <div className="lp-tb-use"><dt>Use</dt><dd>{design.scenario}</dd></div>
+              <div><dt>Size</dt><dd>{formatSize(design.blueprint)}</dd></div>
+              <div><dt>Parts</dt><dd>{design.blueprint.components.length}</dd></div>
+            </dl>
           </div>
-          <dl className="lp-titleblock">
-            <div className="lp-tb-name"><dt>Design</dt><dd>{design.title}</dd></div>
-            <div className="lp-tb-use"><dt>Use</dt><dd>{design.scenario}</dd></div>
-            <div><dt>Size</dt><dd>{formatSize(design.blueprint)}</dd></div>
-            <div><dt>Parts</dt><dd>{design.blueprint.components.length}</dd></div>
-          </dl>
         </div>
         <div className="lp-hero-picker">
           <div role="group" aria-label="Choose the design on the sheet" className="lp-hero-names">
