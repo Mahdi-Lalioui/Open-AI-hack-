@@ -26,8 +26,8 @@ export function AudienceCard({ state }: { state: PublicState | null }) {
   }
 
   return (
-    <Card id="audience" title="Audience orders" className="audience-card">
-      <p className="audience-lead">Scan to send an order from your phone.</p>
+    <Card id="audience" title="Audience" className="audience-card">
+      <p className="audience-lead">Scan to interact from your phone.</p>
       <div className="qr-wrap">
         <QrCode value={url} size={196} testId="qr-code" />
       </div>
@@ -46,7 +46,7 @@ export function AudienceCard({ state }: { state: PublicState | null }) {
       {isLocal && (
         <p className="msg msg-coral" data-testid="localhost-warning">
           Phones can't open localhost. Set PUBLIC_BASE_URL to a reachable https URL or this computer's LAN address
-          (see README). Presenter orders still work.
+          (see README). You can still interact from this screen.
         </p>
       )}
     </Card>

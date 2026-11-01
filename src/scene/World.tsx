@@ -107,7 +107,7 @@ function Contents({ props }: { props: WorldProps }) {
       {creation?.mode === 'circuit' && creation.circuit && (
         <CircuitBoard key={creation.version} spec={creation.circuit} result={getCircuitResult(state)} />
       )}
-      <CameraRig command={props.cameraCommand} reducedMotion={reducedMotion} />
+      <CameraRig command={props.cameraCommand} reducedMotion={reducedMotion} focus={creation?.mode === 'pet' ? 0.6 : 1} />
     </SceneCtx.Provider>
   );
 }

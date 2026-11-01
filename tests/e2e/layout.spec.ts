@@ -12,25 +12,25 @@ import {
   saveScreenshot,
   trackErrors,
 } from './helpers';
+import { DEFAULT_PET } from '../../shared/creations';
 
-const METRICS = ['waiting', 'in-service', 'completed', 'submitted', 'avg-wait', 'workers', 'sim-time'];
+const METRICS = ['pet-hunger', 'pet-happiness', 'pet-energy'];
 
 /** Waits for the host page to have a world on screen (3D canvas or the text fallback). */
 async function hostReady(page: Page) {
   await page.goto('/');
-  await expect(page.getByTestId('metric-submitted')).toBeVisible();
+  await expect(page.getByTestId('build-world')).toBeVisible();
   await expect(page.getByTestId('world-canvas').or(page.getByTestId('webgl-fallback')).first()).toBeVisible();
 }
 
 test.describe('layout', () => {
   test.beforeEach(async ({ request }) => {
-    await resetSession(request, { buildWorld: true });
+    await request.post('/api/creation', { data: { mode: 'pet', pet: DEFAULT_PET, source: 'example' } });
   });
 
   test('host: no horizontal overflow, readable metrics, screenshot', async ({ page, request }, info) => {
     const errors = trackErrors(page);
     // Some activity so the screenshot shows a queue.
-    for (let i = 0; i < 4; i++) await request.post('/api/orders', { data: { id: `layout${info.project.name}${i}${Date.now()}`, origin: 'presenter' } });
     await hostReady(page);
     await page.waitForTimeout(1500); // let the scene settle (reveal animation)
     const ov = await horizontalOverflow(page);
@@ -39,7 +39,7 @@ test.describe('layout', () => {
     const sizes = await page.evaluate((names) => {
       const out: Record<string, number> = {};
       for (const n of names) {
-        const el = document.querySelector(`[data-testid="metric-${n}"]`);
+        const el = document.querySelector(`[data-testid="${n}"]`);
         if (!el) continue;
         const scope = (el.parentElement ?? el) as HTMLElement;
         let min = Infinity;
@@ -57,8 +57,8 @@ test.describe('layout', () => {
       return out;
     }, METRICS);
     for (const n of METRICS) {
-      expect(sizes[n], `metric-${n} present`).toBeDefined();
-      expect(sizes[n], `metric-${n} smallest font-size`).toBeGreaterThanOrEqual(12);
+      expect(sizes[n], `${n} present`).toBeDefined();
+      expect(sizes[n], `${n} smallest font-size`).toBeGreaterThanOrEqual(12);
     }
     await saveScreenshot(page, `host-${info.project.name}`);
     expect(errors, errors.join('\n')).toEqual([]);
@@ -67,13 +67,12 @@ test.describe('layout', () => {
   test('guest /join: no horizontal overflow, screenshot', async ({ page }, info) => {
     const errors = trackErrors(page);
     await page.goto('/join');
-    await expect(page.getByTestId('guest-send')).toBeVisible();
-    await expect(page.getByTestId('guest-queue')).toBeVisible();
+    await expect(page.getByTestId('guest-feed')).toBeVisible();
     const ov = await horizontalOverflow(page);
     expect(ov.overflow, `scrollWidth ${ov.scrollWidth} > innerWidth ${ov.innerWidth}: ${ov.offenders.join(', ')}`).toBe(false);
-    const fs = await page.getByTestId('guest-send').evaluate((el) => parseFloat(getComputedStyle(el).fontSize));
+    const fs = await page.getByTestId('guest-feed').evaluate((el) => parseFloat(getComputedStyle(el).fontSize));
     expect(fs).toBeGreaterThanOrEqual(14);
-    const box = await page.getByTestId('guest-send').boundingBox();
+    const box = await page.getByTestId('guest-feed').boundingBox();
     expect(box?.height ?? 0, 'send button is a comfortable touch target').toBeGreaterThanOrEqual(40);
     await saveScreenshot(page, `guest-${info.project.name}`);
     expect(errors, errors.join('\n')).toEqual([]);
@@ -101,7 +100,7 @@ test.describe('layout', () => {
     await hostReady(page);
     // The example draft must be loaded for Build world to be enabled.
     await page.getByTestId('try-example').click();
-    const wanted = new Set(['build-world', 'sim-start', 'add-worker', 'ask-bean']);
+    const wanted = new Set(['try-example', 'build-world', 'upload-input']);
     const found: Record<string, { outline: string; shadow: string }> = {};
     await page.locator('body').click({ position: { x: 1, y: 1 } });
     for (let i = 0; i < 150 && Object.keys(found).length < wanted.size; i++) {
@@ -134,8 +133,8 @@ test.describe('layout', () => {
     await page.getByTestId('try-example').click();
     await page.getByTestId('build-world').click();
     await expect(page.getByTestId('world-canvas').or(page.getByTestId('webgl-fallback')).first()).toBeVisible();
-    await page.getByTestId('presenter-order').click();
-    await expect.poll(async () => (await getState(request)).sim.metrics.submitted).toBe(1);
+    await expect(page.getByTestId('pet-hunger')).toBeVisible();
+    expect((await getState(request)).creation?.mode).toBe('pet');
     await page.waitForTimeout(500);
     expect(errors, errors.join('\n')).toEqual([]);
   });
@@ -167,18 +166,6 @@ test.describe('layout', () => {
       await btn.click();
       await page.waitForTimeout(150);
     }
-    // Station inspect buttons (keyboard alternative to clicking the 3D stations).
-    for (const id of ['source', 'queue', 'service', 'sink', 'bean']) {
-      await expect(page.getByTestId(`inspect-${id}`)).toBeVisible();
-    }
-    await expect(page.getByTestId('inspect-service')).toHaveText(/Barista/);
-    await page.getByTestId('inspect-service').click();
-    const details = page.getByTestId('station-details');
-    await expect(details).toBeVisible();
-    await expect(details).toContainText('Barista');
-    await expect(details).toContainText(/Service time/i);
-    await page.getByTestId('inspect-queue').click();
-    await expect(details).toContainText(/Waiting/);
     await saveScreenshot(page, `host-inspect-${info.project.name}`);
     expect(errors, errors.join('\n')).toEqual([]);
   });
@@ -186,7 +173,7 @@ test.describe('layout', () => {
 
 test.describe('WebGL unavailable', () => {
   test.beforeEach(async ({ request }) => {
-    await resetSession(request, { buildWorld: true });
+    await request.post('/api/creation', { data: { mode: 'pet', pet: DEFAULT_PET, source: 'example' } });
   });
 
   test('getContext(webgl) returns null -> text fallback, app still works', async ({ page, request }, info) => {
@@ -202,11 +189,8 @@ test.describe('WebGL unavailable', () => {
     const errors = trackErrors(page);
     await page.goto('/');
     await expect(page.getByTestId('webgl-fallback')).toBeVisible();
-    await page.getByTestId('presenter-order').click();
-    await expect.poll(async () => (await getState(request)).sim.metrics.submitted).toBe(1);
-    await page.getByTestId('sim-start').click();
-    await expect(page.getByTestId('sim-start')).toHaveText(/Pause/);
-    await page.getByTestId('sim-start').click();
+    await expect(page.getByTestId('pet-hunger')).toBeVisible();
+    expect((await getState(request)).creation?.mode).toBe('pet');
     await saveScreenshot(page, `host-webgl-fallback-${info.project.name}`);
     // Errors that only describe the missing WebGL context are expected; anything else is not.
     const unexpected = errors.filter((e) => !/webgl|context|three|WebGLRenderer/i.test(e));
@@ -220,8 +204,7 @@ test.describe('WebGL unavailable', () => {
       const page = await browser.newPage({ baseURL: test.info().project.use.baseURL, viewport: { width: 1365, height: 768 } });
       await page.goto('/');
       await expect(page.getByTestId('webgl-fallback')).toBeVisible();
-      await page.getByTestId('presenter-order').click();
-      await expect.poll(async () => (await getState(request)).sim.metrics.submitted).toBe(1);
+      await expect(page.getByTestId('pet-hunger')).toBeVisible();
     } finally {
       await browser.close();
     }

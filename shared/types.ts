@@ -151,7 +151,7 @@ export type BeanActionName = 'call_backup' | 'keep_serving';
 export type BeanActionSource = 'ai' | 'example';
 
 export interface BeanDecision {
-  action: BeanActionName;
+  action: BeanActionName | import('./creations').PetActionName;
   source: BeanActionSource;
   /** Short explanation built from the facts that were sent / the model's reason. */
   explanation: string;

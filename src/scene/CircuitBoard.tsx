@@ -116,8 +116,8 @@ function Led({ c, brightness }: { c: CircuitComponent; brightness: number }) {
   const light = useRef<THREE.PointLight>(null);
   const red = c.type === 'led';
   useFrame((_, dt) => {
-    if (mat.current) mat.current.emissiveIntensity = damp(mat.current.emissiveIntensity, brightness * 2.2, 6, dt);
-    if (light.current) light.current.intensity = damp(light.current.intensity, brightness * 4, 6, dt);
+    if (mat.current) mat.current.emissiveIntensity = damp(mat.current.emissiveIntensity, brightness * 4, 6, dt);
+    if (light.current) light.current.intensity = damp(light.current.intensity, brightness * 8, 6, dt);
   });
   const glowColor = red ? '#FF4B3A' : '#FFD45A';
   return (

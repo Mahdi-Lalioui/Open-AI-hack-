@@ -25,7 +25,7 @@ interface Anim {
   dur: number;
 }
 
-export function CameraRig({ command, reducedMotion }: { command: CameraCommand | null; reducedMotion: boolean }) {
+export function CameraRig({ command, reducedMotion, focus = 1 }: { command: CameraCommand | null; reducedMotion: boolean; focus?: number }) {
   const controls = useRef<OrbitControlsImpl>(null);
   const camera = useThree((s) => s.camera);
   const size = useThree((s) => s.size);
@@ -35,7 +35,7 @@ export function CameraRig({ command, reducedMotion }: { command: CameraCommand |
   const lastNonce = useRef<number | null>(command?.nonce ?? null);
 
   const current = () => new THREE.Spherical().setFromVector3(camera.position.clone().sub(TARGET));
-  const home = () => new THREE.Spherical(defaultDistance(size.width / Math.max(1, size.height)), POLAR, AZIMUTH);
+  const home = () => new THREE.Spherical(Math.max(MIN_D + 1, defaultDistance(size.width / Math.max(1, size.height)) * focus), POLAR, AZIMUTH);
   const go = (to: THREE.Spherical) => {
     to.radius = THREE.MathUtils.clamp(to.radius, MIN_D, MAX_D);
     to.phi = THREE.MathUtils.clamp(to.phi, 0.25, 1.25);
@@ -54,7 +54,7 @@ export function CameraRig({ command, reducedMotion }: { command: CameraCommand |
     camera.lookAt(TARGET);
     controls.current?.update();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [size.width, size.height]);
+  }, [size.width, size.height, focus]);
 
   useEffect(() => {
     if (!command || command.nonce === lastNonce.current) return;
