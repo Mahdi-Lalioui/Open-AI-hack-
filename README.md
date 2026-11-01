@@ -1,64 +1,200 @@
-# Living Paper
+# VDraw — From imagination to implementation
 
-**Turn a sketch into a world you can test.**
+**Sketch it. Describe it. Bring it to life.**
 
-Living Paper turns a simple hand-drawn process (for example `Customers → Barista → Pickup`)
-into a miniature interactive 3D café that a whole room can experiment with. The audience
-scans a QR code and sends orders from their phones; customers join a visible queue; a small
-AI pet called **Bean** watches the queue and can decide to call a simulated backup worker.
-The queue and its measurements change live on every screen.
+VDraw is a multimodal AI creation studio that transforms rough sketches, reference images and natural-language descriptions into editable digital creations.
 
-> Status: **work in progress (hackathon MVP)**. This README is updated as features land.
-> Sections marked _(planned)_ are not finished yet.
+Instead of requiring users to learn multiple specialist tools, our platform interprets their ideas and turns them into structured designs that can be previewed, customised and exported into different formats.
 
-## For teammates — how the project is organised
+**One idea. Multiple outputs. Real, usable creations.**
 
-| Area | Folder | What lives there |
-| --- | --- | --- |
-| Shared contracts | `shared/` | TypeScript types + zod validation used by both server and browser |
-| Queue engine | `server/sim/` | Pure, deterministic FIFO queue simulation (no timers, no I/O) |
-| Live session | `server/session.ts`, `server/routes.ts` | One in-memory session, REST mutations, Socket.IO state broadcast |
-| OpenAI adapters | `server/openai/` | Vision (Responses API), Decisions API, image generation — server-side only |
-| Host + guest UI | `src/host/`, `src/guest/` | React screens (host dashboard, `/join` phone page) |
-| 3D world | `src/scene/` | React Three Fiber "Paper Theatre" café diorama and Bean |
-| Tests | `tests/` | Vitest unit/API tests, Playwright end-to-end tests |
+## 1. Overview
 
-Stack: TypeScript, React + Vite, Node/Express, Socket.IO, Three.js via React Three Fiber,
-Vitest, Playwright. One `npm run dev` process serves the API, the websocket and the UI.
+### The problem
 
-## Quick start _(planned commands — finalised at the end of the build)_
+Turning an idea into a usable digital or physical design often requires knowledge of several specialist tools, including CAD software, 3D modelling applications, animation tools and frontend development environments.
 
-```bash
-npm install
-cp .env.example .env   # optional: add OPENAI_API_KEY for live AI features
-npm run dev            # http://localhost:5173 (host)  ·  /join (guest)
+This creates a barrier between having an idea and actually building it.
+
+### Our solution
+
+We provide a single workspace where users can sketch, describe or upload an idea and transform it into a structured, editable design.
+
+A central AI-generated Design Blueprint acts as the source of truth for the different outputs, allowing one idea to be transformed into multiple formats.
+
+### Who is it for?
+
+- Designers and product prototypers.
+- Makers and hobbyists.
+- Indie game developers and 3D artists.
+- Frontend developers and UI designers.
+- Anyone who wants to turn an idea into something tangible without mastering specialist software.
+
+## 2. Core user journey
+
+1. **Input:** Draw a sketch, upload a reference image or describe an idea.
+2. **Interpret:** AI analyses the input and extracts the intended design, components, dimensions and style.
+3. **Generate:** The system converts the interpretation into a structured Design Blueprint.
+4. **Visualise:** An interactive 3D model is generated for inspection and customisation.
+5. **Refine:** Users request changes using natural language or design controls.
+6. **Export:** The design can be exported into supported, usable formats.
+
+## 3. Features and supported outputs
+
+| Capability | Description | Status |
+|---|---|---|
+| Sketch interpretation | Understand rough drawings and design intent | [Update] |
+| Image and text input | Combine visual references and descriptions | [Update] |
+| Design Blueprint | Convert ideas into structured design specifications | [Update] |
+| Interactive 3D preview | View, rotate and inspect generated objects | [Update] |
+| Design refinement | Change dimensions, components and materials | [Update] |
+| CAD export | Generate editable parametric CAD source | [Update] |
+| 3D export | Download generated models | [Update] |
+| Web component generation | Create components and interactive product previews | [Update] |
+| Animation | Add motion to generated objects | [Update] |
+
+Only mark features as complete once they work in the actual application.
+
+## 4. Backend architecture and APIs
+
+### Architecture overview
+
+The platform uses a shared Design Blueprint to connect multimodal AI interpretation with deterministic rendering and export systems.
+
+```text
+User Input
+  ├── Sketch / Canvas
+  ├── Reference Image
+  └── Text / Voice
+         |
+         v
+Backend API
+         |
+         v
+OpenAI Responses API
+         |
+         v
+Structured Design Blueprint
+         |
+         v
+Validation and Normalisation
+         |
+         +----------+----------+----------+
+         |          |          |          |
+         v          v          v          v
+        3D         CAD        Web      Animation
+      Renderer   Exporter   Exporter   Renderer
+         |          |          |          |
+         +----------+----------+----------+
+                    |
+                    v
+              User Outputs
 ```
 
-```bash
-npm test               # unit + API tests
-npm run test:e2e       # Playwright host/guest flow (example mode, no API key needed)
-npm run build          # typecheck + production build
-npm start              # serve the production build
-```
+### AI integration
 
-## What is real and what is example
+- **OpenAI Responses API:** Multimodal interpretation of sketches, images and natural-language descriptions.
+- **Structured Outputs:** Constrained generation of the Design Blueprint.
+- **Image generation (optional):** Concept imagery and visual presentation assets.
+- **Audio transcription (optional):** Voice-based design instructions.
 
-- **Example mode works with no API key.** It uses a built-in example drawing and graph and is
-  always labelled “Example: no image analysis used”. Example pet actions are labelled
-  “Example action”, never “AI”.
-- **Live mode** (with `OPENAI_API_KEY`) reads the uploaded photo with a vision model, asks the
-  OpenAI Decisions API which pet action to take, and can generate a custom 2D Bean picture.
-  Every integration shows its own honest status: Live, Ready, Waiting, Not configured or
-  Unavailable.
-- The queue numbers are **simulated** from the assumptions you enter (arrival interval,
-  service time, workers). They are not predictions about a real business.
+### Design Blueprint
 
-## Demo script _(draft)_
+The Design Blueprint is the common representation of a user's design.
 
-1. Draw `Customers → Barista → Pickup` and upload a photo, or click **Try example**.
-2. Check the recognised flow, edit labels/assumptions, click **Build world**.
-3. Ask the audience to scan the QR code and send orders (or add **Presenter orders**).
-4. Start the simulation at 10× and point out the growing queue and live metrics.
-5. Click **Ask Bean**. If a real `call_backup` decision arrives with AI management on, the
-   second simulated barista appears; otherwise use **Add worker** and explain why.
-6. Watch the queue and metrics respond. Results depend on the chosen assumptions.
+It should capture:
+
+- Object name and description.
+- Dimensions and units.
+- Components and their relationships.
+- Geometric primitives and parameters.
+- Position and rotation.
+- Materials, colours and visual style.
+- Optional animation and interaction settings.
+
+All renderers and exporters should consume this shared representation rather than independently interpreting the original prompt.
+
+### Backend endpoints
+
+Document the actual routes implemented in the repository. Suggested responsibilities:
+
+| Endpoint | Responsibility |
+|---|---|
+| `POST /api/design/interpret` | Interpret user input and return a Design Blueprint |
+| `POST /api/design/refine` | Apply requested changes to an existing design |
+| `POST /api/design/export` | Generate the requested output format |
+| `GET /api/design/:id` | Retrieve a saved design |
+
+## 5. Frontend and UI/UX
+
+The application is designed as a creative workspace rather than a conventional chatbot.
+
+### Main interface
+
+- **Input panel:** Sketch canvas, image uploads and natural-language instructions.
+- **Creation viewport:** Large interactive 3D preview.
+- **Design inspector:** Components, dimensions, materials and adjustable parameters.
+- **Refinement interface:** Natural-language instructions for modifying the current design.
+- **Export panel:** Available downloadable formats.
+
+### UX principles
+
+- Visual-first interaction.
+- Minimal learning curve.
+- Immediate visual feedback.
+- Editable outputs rather than static AI-generated images.
+- One consistent design across all output formats.
+
+## 6. Demo
+
+### The scenario
+
+A user wants to create a modular desk organiser but has no CAD or 3D modelling experience.
+
+They sketch their idea, describe the intended functionality, and let the application generate an editable design.
+
+The demonstration shows:
+
+1. A rough sketch and natural-language description.
+2. AI interpretation into a Design Blueprint.
+3. The generated interactive 3D model.
+4. A natural-language refinement.
+5. A downloadable design file.
+6. The same design represented in another output format.
+
+**The takeaway: one rough idea becomes something you can actually use.**
+
+## 7. Use of Codex
+
+Codex was used throughout the hackathon as a development agent.
+
+Document concrete examples of its contribution, including:
+
+- The tasks it completed.
+- The files or components it helped implement.
+- The tests it ran.
+- A specific bug or engineering challenge it helped solve.
+
+Include evidence where possible, such as screenshots, example prompts or links to relevant commits.
+
+## 8. Running the project
+
+Document the actual prerequisites, installation commands and development scripts here.
+
+### Environment variables
+
+List required environment variables without including their values or actual API keys.
+
+### Local development
+
+Provide instructions for installing dependencies, configuring the environment and starting the application.
+
+## 9. Credits and acknowledgements
+
+Identify external libraries, APIs, templates, assets and existing code used in the project.
+
+Clearly distinguish these from the functionality developed by the team during the hackathon.
+
+## 10. Future direction
+
+Potential extensions include game and AR assets, animation exports, interior design, furniture prototyping, laser-cut fabrication and additional frontend output formats.
