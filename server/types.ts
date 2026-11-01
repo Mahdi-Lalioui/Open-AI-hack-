@@ -58,6 +58,10 @@ export interface LiveSessionApi {
   setBeanImage(image: BeanImageState): void;
   setApiStatus(kind: ApiKind, entry: Partial<ApiStatusEntry>): void;
 
+  buildCreation(input: import('./creation/schemas').BuildCreationInput): import('../shared/creations').CreationConfig;
+  interact(input: import('./creation/schemas').InteractionInput, meta?: { ip?: string }): unknown;
+  setPetAction(action: import('../shared/creations').PetActionName, by?: string | null, durationMs?: number): void;
+
   /** Clears timers. */
   dispose(): void;
 }

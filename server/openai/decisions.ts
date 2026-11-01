@@ -82,3 +82,65 @@ export function parseDecision(response: unknown, facts: QueueFacts): ParsedDecis
   const explanation = rationale ? truncate(rationale) : aiExplanation(action, facts, confidence);
   return { action, confidence, explanation };
 }
+
+// ---------------------------------------------------------------------------
+// Pet decision ("Ask the pet") — same documented request/response shape.
+// ---------------------------------------------------------------------------
+import type { PetActionName } from '../../shared/creations';
+import { type PetFacts, aiPetExplanation, allowedPetActions } from '../beanRules';
+
+export const PET_QUESTION_NAME = 'pet_action';
+const PET_DESCRIPTIONS: Record<PetActionName, string> = {
+  eat: 'Eat a snack because it is hungry.',
+  sleep: 'Take a nap because its energy is low.',
+  play: 'Play with a toy.',
+  dance: 'Do a happy dance.',
+  wave: 'Wave hello at the guests.',
+  idle: 'Do nothing.',
+};
+
+export function buildPetDecisionRequest(model: string, facts: PetFacts) {
+  return {
+    model,
+    input: [
+      {
+        role: 'developer',
+        content:
+          'You are the mind of a small virtual pet in a live demo. Needs are 0..100 (hunger: higher = hungrier). ' +
+          'Guest interactions are recent counts. Judge only from the facts given.',
+      },
+      {
+        role: 'user',
+        content: [
+          { type: 'input_text', text: 'Current pet needs and recent guest interactions:' },
+          { type: 'input_json', data: { ...facts } },
+        ],
+      },
+    ],
+    questions: [
+      {
+        type: 'choice',
+        name: PET_QUESTION_NAME,
+        instructions: `What should ${facts.name} do next to stay happy and healthy, given its needs and what the guests did?`,
+        choices: allowedPetActions(facts).map((value) => ({ value, description: PET_DESCRIPTIONS[value] })),
+      },
+    ],
+  };
+}
+
+export function parsePetDecision(response: unknown, facts: PetFacts): { action: PetActionName; confidence: number | null; explanation: string } {
+  const answers = (response as { answers?: unknown } | null)?.answers;
+  if (!Array.isArray(answers) || answers.length === 0) throw invalidOutputError('decisions', 'no answers');
+  const answer = (answers.find((a) => (a as { name?: unknown })?.name === PET_QUESTION_NAME) ?? answers[0]) as Record<string, unknown>;
+  if (answer?.type === 'refusal') {
+    throw new OpenAIError('model_refused', 'decisions', 'Pet decision: the model declined to answer. Nothing was changed.');
+  }
+  if (answer?.type !== 'choice') throw invalidOutputError('decisions', 'the answer was not a choice');
+  const allowed = allowedPetActions(facts) as string[];
+  if (typeof answer.choice !== 'string' || !allowed.includes(answer.choice)) {
+    throw invalidOutputError('decisions', 'the choice was not one of the allowed actions');
+  }
+  const action = answer.choice as PetActionName;
+  const confidence = typeof answer.confidence === 'number' && answer.confidence >= 0 && answer.confidence <= 1 ? answer.confidence : null;
+  return { action, confidence, explanation: aiPetExplanation(action, facts, confidence) };
+}

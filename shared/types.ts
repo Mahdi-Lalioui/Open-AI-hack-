@@ -213,6 +213,10 @@ export interface PublicState {
   api: ApiStatusMap;
   /** From PUBLIC_BASE_URL env, or null (client then uses window.location.origin). */
   publicBaseUrl: string | null;
+  /** PIVOT: the built pet/circuit creation, or null. */
+  creation?: import('./creations').CreationConfig | null;
+  pet?: import('./creations').PetState;
+  circuit?: { switchClosed: boolean; result: import('./creations').CircuitResult | null };
 }
 
 // ---------------------------------------------------------------------------

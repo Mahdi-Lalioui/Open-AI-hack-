@@ -11,7 +11,11 @@ import { OpenAIError, notConfiguredError } from './errors';
 import { type HttpDeps, defaultHttpDeps, postJson } from './http';
 import { type ImageMime, buildVisionRequest, extractOutputText, parseSketch } from './vision';
 import { buildDecisionRequest, parseDecision } from './decisions';
-import { buildImageRequest, parseImageResponse } from './image';
+import { buildImageRequest, buildPetImageRequest, parseImageResponse } from './image';
+import { buildCreationRequest, parseCreation } from './creation';
+import { buildPetDecisionRequest, parsePetDecision } from './decisions';
+import type { PetActionName, PetSpec, RecognizedCreation, SketchMode } from '../../shared/creations';
+import type { PetFacts } from '../beanRules';
 
 export { OpenAIError } from './errors';
 export type { OpenAIErrorCode } from './errors';
@@ -34,6 +38,12 @@ export interface OpenAIAdapter {
   decide(facts: QueueFacts): Promise<AiDecision>;
   /** One image generation call, never retried. Returns PNG bytes. Throws OpenAIError. */
   generateBeanImage(): Promise<{ png: Buffer; model: string }>;
+  /** PIVOT: reads a pet or circuit sketch (strict json_schema, zod-validated). */
+  analyzeCreation(image: Buffer, mime: ImageMime, mode: SketchMode): Promise<RecognizedCreation>;
+  /** PIVOT: one Decisions call choosing among the allowed pet actions. */
+  decidePet(facts: PetFacts): Promise<{ action: PetActionName; explanation: string; confidence: number | null; model: string }>;
+  /** PIVOT: 2D portrait/skin of the pet (flat texture, not a 3D model). Never retried. */
+  generatePetImage(pet: PetSpec): Promise<{ png: Buffer; model: string }>;
 }
 
 export interface OpenAIAdapterDeps {
@@ -116,6 +126,33 @@ export function createOpenAIAdapter(config: AppConfig['openai'], deps: OpenAIAda
         timeoutMs: config.imageTimeoutMs,
         // Image generation is slow and billed per image: never retried automatically.
         retry: false,
+      });
+      return { png: parseImageResponse(response), model: models.image };
+    },
+
+    async analyzeCreation(image, mime, mode) {
+      if (!apiKey) throw notConfiguredError('vision');
+      const response = await postJson(http, {
+        kind: 'vision', model: models.vision, baseUrl: config.baseUrl, path: '/responses', apiKey,
+        body: buildCreationRequest(models.vision, image, mime, mode), timeoutMs: config.visionTimeoutMs, retry: true,
+      });
+      return parseCreation(extractOutputText(response), mode);
+    },
+
+    async decidePet(facts) {
+      if (!apiKey) throw notConfiguredError('decisions');
+      const response = await postJson(http, {
+        kind: 'decisions', model: models.decisions, baseUrl: config.baseUrl, path: '/decisions', apiKey,
+        body: buildPetDecisionRequest(models.decisions, facts), timeoutMs: config.decisionsTimeoutMs, retry: true,
+      });
+      return { ...parsePetDecision(response, facts), model: models.decisions };
+    },
+
+    async generatePetImage(pet) {
+      if (!apiKey) throw notConfiguredError('image');
+      const response = await postJson(http, {
+        kind: 'image', model: models.image, baseUrl: config.baseUrl, path: '/images/generations', apiKey,
+        body: buildPetImageRequest(models.image, pet), timeoutMs: config.imageTimeoutMs, retry: false,
       });
       return { png: parseImageResponse(response), model: models.image };
     },

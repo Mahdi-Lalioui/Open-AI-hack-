@@ -7,7 +7,7 @@ import { z } from 'zod';
 import type { AddOrderInput, ApiError, BuildWorldInput } from '../../shared/types';
 import { SIM_SPEEDS } from '../../shared/types';
 import type { LiveSessionApi } from '../types';
-import { STALE_EPOCH_REASON, WorldValidationError, isValidSpeed } from '../session';
+import { STALE_EPOCH_REASON, WorldValidationError, isValidSpeed, type LiveSession } from '../session';
 
 const speedSchema = z.object({
   speed: z.number().refine(isValidSpeed, { message: `Speed must be one of ${SIM_SPEEDS.join(', ')}.` }),
@@ -28,7 +28,14 @@ const ORDER_ERROR_STATUS: Record<string, number> = {
   queue_full: 409,
 };
 
+const INTERACTION_ERROR_STATUS: Record<string, number> = { invalid_input: 400, rate_limited: 429, no_creation: 409, wrong_mode: 409 };
+
+/** Creation methods are not on the lead-owned LiveSessionApi contract; they live on LiveSession. */
+type CreationSession = LiveSessionApi & Pick<LiveSession, 'buildCreation' | 'interact'>;
+
 export function createSimRouter(session: LiveSessionApi): Router {
+  // app.ts types the session as LiveSessionApi; the real LiveSession also has creation methods.
+  const creations = session as Partial<CreationSession>;
   const router = Router();
 
   router.post('/world', (req, res, next) => {
@@ -102,6 +109,31 @@ export function createSimRouter(session: LiveSessionApi): Router {
     }
     session.setAiManagement(parsed.data.enabled);
     res.json({ ok: true });
+  });
+
+  router.post('/creation', (req, res, next) => {
+    try {
+      if (!creations.buildCreation) return sendError(res, 501, 'not_supported', 'Creations are not supported.');
+      const creation = creations.buildCreation(req.body ?? {});
+      res.json({ ok: true, creation });
+    } catch (err) {
+      if (err instanceof WorldValidationError) {
+        sendError(res, 400, 'invalid_creation', err.message || 'This creation cannot be built.');
+        return;
+      }
+      next(err);
+    }
+  });
+
+  router.post('/interactions', (req, res) => {
+    if (!creations.interact) return sendError(res, 501, 'not_supported', 'Creations are not supported.');
+    const result = creations.interact(req.body ?? {}, { ip: req.ip });
+    if (!result.ok) {
+      const status = INTERACTION_ERROR_STATUS[result.code] ?? 400;
+      res.status(status).json(result);
+      return;
+    }
+    res.json(result);
   });
 
   return router;

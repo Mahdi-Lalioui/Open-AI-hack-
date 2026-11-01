@@ -31,6 +31,10 @@ import { DEFAULT_ASSUMPTIONS, MAX_WORKERS, SIM_SPEEDS } from '../shared/types';
 import { addOrderSchema, buildWorldSchema, checkChain } from '../shared/validation';
 import type { AddWorkerResult, LiveSessionApi, LiveSessionOptions } from './types';
 import * as engine from './sim/engine';
+import type { CircuitResult, CreationConfig, InteractionKind, PetActionName, PetState } from '../shared/creations';
+import { applyInteraction, createPetState, decayPet, setAction } from './creation/petSim';
+import { solveCircuit } from './creation/circuit';
+import { buildCreationSchema, interactionSchema, type BuildCreationInput, type InteractionInput } from './creation/schemas';
 import { AUDIENCE_ORDER_RULES, SlidingWindowRateLimiter, type RateLimitRule } from './rateLimit';
 
 export const STALE_EPOCH_REASON = 'Session was reset; stale action ignored.';
@@ -49,6 +53,14 @@ export class WorldValidationError extends Error {
     this.name = 'WorldValidationError';
     this.errors = errors;
   }
+}
+
+export interface InteractionResult {
+  ok: true;
+  duplicate: boolean;
+  kind: InteractionKind;
+  pet: PetState;
+  circuit: { switchClosed: boolean; result: CircuitResult | null };
 }
 
 export interface LiveSessionExtraOptions {
@@ -89,6 +101,12 @@ export class LiveSession implements LiveSessionApi {
   };
   private api: ApiStatusMap;
 
+  private creation: CreationConfig | null = null;
+  private pet: PetState = createPetState();
+  private circuitSwitch = false;
+  private circuitResult: CircuitResult | null = null;
+  private lastPetWall = 0;
+  private seenInteractions = new Set<string>();
   private timer: ReturnType<typeof setInterval> | null = null;
   private lastTickWall = 0;
   private listeners = new Set<(state: PublicState) => void>();
@@ -126,6 +144,8 @@ export class LiveSession implements LiveSessionApi {
       bean: structuredClone(this.bean),
       api: structuredClone(this.api),
       publicBaseUrl: this.publicBaseUrl,
+      creation: this.creation ? structuredClone(this.creation) : null,
+      ...this.creationView(),
     };
   }
 
@@ -184,18 +204,14 @@ export class LiveSession implements LiveSessionApi {
     if (this.sim.running && this.timer) return;
     engine.startSim(this.sim);
     this.lastTickWall = this.now();
-    if (!this.timer) {
-      this.timer = setInterval(() => this.tick(), this.tickMs);
-      // Do not keep the process alive just for the simulation clock.
-      (this.timer as { unref?: () => void }).unref?.();
-    }
+    this.syncTimer();
     this.notify();
   }
 
   pause(): void {
     if (this.sim.running) this.advanceClock();
     engine.pauseSim(this.sim);
-    this.clearTimer();
+    this.syncTimer();
     this.notify();
   }
 
@@ -213,8 +229,8 @@ export class LiveSession implements LiveSessionApi {
   }
 
   private resetInternal(assumptions: Assumptions): void {
-    this.clearTimer();
     engine.resetSim(this.sim, assumptions);
+    this.syncTimer();
     this.bean.thinking = false;
     this.notify();
   }
@@ -237,12 +253,111 @@ export class LiveSession implements LiveSessionApi {
     return engine.advanceTo(this.sim, targetMs / 1000);
   }
 
+  /** The single interval runs while the queue sim runs or a pet creation is alive. */
+  private syncTimer(): void {
+    const needed = !this.disposed && (this.sim.running || this.petAlive());
+    if (needed && !this.timer) {
+      this.lastPetWall = this.now();
+      this.timer = setInterval(() => this.tick(), this.tickMs);
+      // Do not keep the process alive just for the simulation clock.
+      (this.timer as { unref?: () => void }).unref?.();
+    } else if (!needed) {
+      this.clearTimer();
+    }
+  }
+
+  private petAlive(): boolean {
+    return this.creation?.mode === 'pet';
+  }
+
   private tick(): void {
-    if (this.disposed || !this.sim.running) {
+    if (this.disposed || (!this.sim.running && !this.petAlive())) {
       this.clearTimer();
       return;
     }
-    if (this.advanceClock()) this.notify();
+    let changed = false;
+    if (this.sim.running && this.advanceClock()) changed = true;
+    if (this.petAlive()) {
+      const now = this.now();
+      const dt = Math.min(Math.max(0, now - this.lastPetWall), this.maxTickGapMs) / 1000;
+      this.lastPetWall = now;
+      if (dt > 0) {
+        this.pet = decayPet(this.pet, dt, now);
+        changed = true;
+      }
+    }
+    if (changed) this.notify();
+  }
+
+  // -------------------------------------------------------------------------
+  // Creations (pet / circuit)
+  // -------------------------------------------------------------------------
+
+  buildCreation(input: BuildCreationInput): CreationConfig {
+    const parsed = buildCreationSchema.safeParse(input);
+    if (!parsed.success) {
+      throw new WorldValidationError(
+        parsed.error.issues.map((i) => `${i.path.length ? `${i.path.join('.')}: ` : ''}${i.message}.`.replace(/\.\.$/, '.')),
+      );
+    }
+    const d = parsed.data;
+    const creation: CreationConfig = {
+      mode: d.mode,
+      pet: d.mode === 'pet' ? (d.pet as CreationConfig['pet']) : null,
+      circuit: d.mode === 'circuit' ? (d.circuit as CreationConfig['circuit']) : null,
+      source: d.source,
+      version: (this.creation?.version ?? 0) + 1,
+    };
+    this.creation = creation;
+    this.pet = createPetState();
+    this.circuitSwitch = false;
+    this.circuitResult = creation.circuit ? solveCircuit(creation.circuit, false) : null;
+    this.syncTimer();
+    this.notify();
+    return structuredClone(creation);
+  }
+
+  /** Audience/presenter interaction; idempotent by id, audience rate limited per ip. */
+  interact(input: InteractionInput, meta: { ip?: string } = {}): InteractionResult | ApiError {
+    const parsed = interactionSchema.safeParse(input);
+    if (!parsed.success) return apiError('invalid_input', parsed.error.issues[0]?.message ?? 'Invalid interaction.');
+    const { id, kind, nickname } = parsed.data;
+    if (this.seenInteractions.has(id)) return { ok: true, duplicate: true, kind, ...this.creationView() };
+    if (!this.creation) return apiError('no_creation', 'Nothing has been built yet.');
+    if (kind === 'toggle_switch' ? this.creation.mode !== 'circuit' : this.creation.mode !== 'pet') {
+      return apiError('wrong_mode', kind === 'toggle_switch' ? 'There is no circuit to switch.' : 'There is no pet to interact with.');
+    }
+    const rl = this.audienceLimiter.consume(meta.ip || 'unknown');
+    if (!rl.ok) {
+      return apiError('rate_limited', `Easy there! Try again in ${Math.max(1, Math.ceil(rl.retryAfterMs / 1000))} s.`);
+    }
+    this.seenInteractions.add(id);
+    while (this.seenInteractions.size > this.seenLimit) {
+      const oldest = this.seenInteractions.values().next().value;
+      if (oldest === undefined) break;
+      this.seenInteractions.delete(oldest);
+    }
+    if (kind === 'toggle_switch') {
+      this.circuitSwitch = !this.circuitSwitch;
+      this.circuitResult = solveCircuit(this.creation.circuit!, this.circuitSwitch);
+    } else {
+      this.pet = applyInteraction(this.pet, kind, nickname ?? null, this.now());
+    }
+    this.notify();
+    return { ok: true, duplicate: false, kind, ...this.creationView() };
+  }
+
+  setPetAction(action: PetActionName, by?: string | null, durationMs = 3000): void {
+    this.pet = setAction(this.pet, action, durationMs, this.now());
+    if (by) this.pet.lastBy = by;
+    this.notify();
+  }
+
+  private creationView() {
+    return {
+      pet: structuredClone(this.pet),
+      circuit: { switchClosed: this.circuitSwitch, result: this.circuitResult ? structuredClone(this.circuitResult) : null },
+    };
   }
 
   // -------------------------------------------------------------------------

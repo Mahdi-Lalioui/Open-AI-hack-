@@ -88,3 +88,65 @@ export function aiExplanation(action: BeanActionName, facts: QueueFacts, confide
   const conf = confidence === null ? '' : ` (confidence ${Math.round(confidence * 100)}%)`;
   return truncate(`Bean chose to ${verb}${conf}. Facts sent: ${describeFacts(facts)}.`);
 }
+
+// ---------------------------------------------------------------------------
+// Pet ("Ask the pet")
+// ---------------------------------------------------------------------------
+import type { PetActionName, PetSpec, PetState } from '../shared/creations';
+
+export interface PetFacts {
+  name: string;
+  hunger: number;
+  happiness: number;
+  energy: number;
+  currentAction: PetActionName;
+  recentInteractions: { feed: number; pet: number; play: number };
+  lastGuest: string | null;
+}
+
+export const PET_EXAMPLE_PREFIX = 'Example action (rule-based, no AI): ';
+
+export function petFacts(pet: PetState, spec: PetSpec | null): PetFacts {
+  const r = (v: number) => Math.round(Math.min(100, Math.max(0, v)));
+  return {
+    name: spec?.name ?? 'Pet',
+    hunger: r(pet.hunger),
+    happiness: r(pet.happiness),
+    energy: r(pet.energy),
+    currentAction: pet.action,
+    recentInteractions: { ...pet.counts },
+    lastGuest: pet.lastBy,
+  };
+}
+
+/** eat only if hunger > 40, sleep only if energy < 40; play/dance/wave always allowed. */
+export function allowedPetActions(f: PetFacts): PetActionName[] {
+  const out: PetActionName[] = [];
+  if (f.hunger > 40) out.push('eat');
+  if (f.energy < 40) out.push('sleep');
+  out.push('play', 'dance', 'wave');
+  return out;
+}
+
+export function describePet(f: PetFacts): string {
+  const i = f.recentInteractions;
+  return `hunger ${f.hunger}, energy ${f.energy}, happiness ${f.happiness}; guests fed ${i.feed}, petted ${i.pet}, played ${i.play}`;
+}
+
+/** Deterministic rule used without an API key (always labelled source 'example'). */
+export function examplePetDecision(f: PetFacts): { action: PetActionName; explanation: string } {
+  let action: PetActionName;
+  if (f.hunger > 70) action = 'eat';
+  else if (f.energy < 25) action = 'sleep';
+  else if (f.hunger > 40 && f.hunger >= 100 - f.energy) action = 'eat';
+  else if (f.energy < 40) action = 'sleep';
+  else if (f.happiness < 50) action = 'play';
+  else if (f.recentInteractions.pet > f.recentInteractions.play) action = 'wave';
+  else action = 'dance';
+  return { action, explanation: truncate(`${PET_EXAMPLE_PREFIX}${f.name} will ${action} (${describePet(f)}).`) };
+}
+
+export function aiPetExplanation(action: PetActionName, f: PetFacts, confidence: number | null): string {
+  const conf = confidence === null ? '' : ` (confidence ${Math.round(confidence * 100)}%)`;
+  return truncate(`${f.name} chose to ${action}${conf}. Facts sent: ${describePet(f)}.`);
+}

@@ -8,6 +8,19 @@ import type { LiveSessionApi } from '../types';
 import type { ImageMime, OpenAIAdapter } from '../openai';
 import { OpenAIError } from '../openai';
 import { NOTHING_TO_DECIDE, exampleDecision, hasDecisionToMake, queueFactsFromState } from '../beanRules';
+import { examplePetDecision, petFacts } from '../beanRules';
+import { DEFAULT_PET } from '../../shared/creations';
+import type { PetActionName, PetSpec, SketchMode } from '../../shared/creations';
+
+/** Backend adds setPetAction to the session; called defensively so this compiles before/after. */
+type PetActionSetter = { setPetAction?: (action: PetActionName, opts?: { expectedEpoch?: number }) => unknown };
+function applyPetAction(session: LiveSessionApi, action: PetActionName, epoch: number): { ok: boolean; reason?: string } {
+  const fn = (session as unknown as PetActionSetter).setPetAction;
+  if (typeof fn !== 'function') return { ok: false, reason: 'This server cannot animate the pet yet.' };
+  const r = fn.call(session, action, { expectedEpoch: epoch }) as { ok?: boolean; reason?: string } | void;
+  if (r && typeof r === 'object' && r.ok === false) return { ok: false, reason: r.reason ?? 'Not applied.' };
+  return { ok: true };
+}
 
 const IMAGE_TYPES: ImageMime[] = ['image/png', 'image/jpeg', 'image/webp'];
 export const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
@@ -61,7 +74,8 @@ export function createAiRouter(session: LiveSessionApi, openai: OpenAIAdapter): 
   /** Local guard as well: reset() clears bean.thinking while an earlier call may still be in flight. */
   let askBusy = false;
   /** Bean image bytes are kept in memory for the life of the server process. */
-  let beanImage: { png: Buffer; version: number; model: string } | null = null;
+  let beanImage: { png: Buffer; version: number; model: string; key: string } | null = null;
+  const imageKey = () => { const c = session.getState().creation; return c?.mode === 'pet' ? JSON.stringify(c.pet ?? DEFAULT_PET) : 'bean'; };
   let imageVersion = 0;
 
   const setStatus = (kind: ApiKind, state: 'waiting' | 'live' | 'unavailable', message: string) =>
@@ -113,9 +127,21 @@ export function createAiRouter(session: LiveSessionApi, openai: OpenAIAdapter): 
         sendError(res, 409, 'busy', 'A sketch is already being read. Wait for it to finish.');
         return;
       }
+      const modeQ = typeof req.query.mode === 'string' ? req.query.mode : undefined;
+      if (modeQ !== undefined && modeQ !== 'pet' && modeQ !== 'circuit') {
+        sendError(res, 400, 'invalid_input', 'mode must be "pet" or "circuit".');
+        return;
+      }
+      const mode = modeQ as SketchMode | undefined;
       visionBusy = true;
       setStatus('vision', 'waiting', 'Reading the sketch…');
       try {
+        if (mode) {
+          const creation = await openai.analyzeCreation(body, mime, mode);
+          setStatus('vision', 'live', 'Last sketch read succeeded.');
+          res.json({ ok: true, creation, model: openai.models.vision });
+          return;
+        }
         const sketch = await openai.analyzeSketch(body, mime);
         setStatus('vision', 'live', 'Last sketch read succeeded.');
         res.json({ ok: true, sketch, model: openai.models.vision });
@@ -138,6 +164,10 @@ export function createAiRouter(session: LiveSessionApi, openai: OpenAIAdapter): 
       return;
     }
     const epoch = start.sim.epoch;
+    if (start.creation?.mode === 'pet' && start.pet) {
+      await askPet(res, start.creation.pet ?? DEFAULT_PET, epoch);
+      return;
+    }
     const facts = queueFactsFromState(start);
     if (!hasDecisionToMake(facts)) {
       sendError(res, 409, 'nothing_to_decide', NOTHING_TO_DECIDE);
@@ -214,6 +244,68 @@ export function createAiRouter(session: LiveSessionApi, openai: OpenAIAdapter): 
     }
   });
 
+  /** "Ask the pet": choose among allowed actions; app code applies it via session.setPetAction. */
+  async function askPet(res: Response, spec: PetSpec, epoch: number) {
+    const st = session.getState();
+    if (!st.pet) return sendError(res, 409, 'no_pet', 'Build a pet first.');
+    const facts = petFacts(st.pet, spec);
+    askBusy = true;
+    session.setBeanThinking(true);
+    try {
+      let action: PetActionName;
+      let explanation: string;
+      let source: BeanActionSource;
+      let model: string | undefined;
+      if (!openai.configured) {
+        ({ action, explanation } = examplePetDecision(facts));
+        source = 'example';
+      } else {
+        setStatus('decisions', 'waiting', 'Asking the pet…');
+        try {
+          const ai = await openai.decidePet(facts);
+          ({ action, explanation, model } = ai);
+          source = 'ai';
+          setStatus('decisions', 'live', 'Last decision succeeded.');
+          session.setBeanError(null);
+        } catch (err) {
+          const message = errorMessage(err);
+          setStatus('decisions', 'unavailable', message);
+          session.setBeanError(message);
+          return sendOpenAIError(res, err);
+        }
+      }
+      const now = session.getState();
+      let applied = false;
+      let notAppliedReason: string | undefined;
+      if (now.sim.epoch !== epoch || now.creation?.mode !== 'pet') {
+        notAppliedReason = 'The session was reset while the pet was thinking — nothing was changed.';
+      } else {
+        const r = applyPetAction(session, action, epoch);
+        applied = r.ok;
+        notAppliedReason = r.reason;
+      }
+      const decision = {
+        action,
+        source,
+        explanation,
+        applied,
+        ...(notAppliedReason ? { notAppliedReason } : {}),
+        simTime: now.sim.time,
+        wallTime: Date.now(),
+        epoch,
+        ...(model ? { model } : {}),
+      };
+      // BeanDecision.action is typed for the retired café actions; contract change reported to the lead.
+      session.recordBeanDecision(decision as unknown as BeanDecision);
+      res.json({ ok: true, decision });
+    } catch (err) {
+      sendOpenAIError(res, err);
+    } finally {
+      askBusy = false;
+      session.setBeanThinking(false);
+    }
+  }
+
   // -------------------------------------------------------------------------
   // POST /api/bean/image — generate once on request; GET serves cached bytes
   // -------------------------------------------------------------------------
@@ -226,7 +318,7 @@ export function createAiRouter(session: LiveSessionApi, openai: OpenAIAdapter): 
       sendError(res, 409, 'busy', 'Bean is already being drawn. Wait for it to finish.');
       return;
     }
-    if (beanImage) {
+    if (beanImage && beanImage.key === imageKey()) {
       const image: BeanImageState = { status: 'ready', url: `/api/bean/image.png?v=${beanImage.version}`, model: beanImage.model };
       if (session.getState().bean.image.status !== 'ready') session.setBeanImage(image);
       res.json({ ok: true, image });
@@ -238,10 +330,13 @@ export function createAiRouter(session: LiveSessionApi, openai: OpenAIAdapter): 
     session.setBeanImage({ status: 'loading', model });
     setStatus('image', 'waiting', 'Drawing Bean…');
     try {
-      const result = await openai.generateBeanImage();
+      const st = session.getState();
+      const result =
+        st.creation?.mode === 'pet' ? await openai.generatePetImage(st.creation.pet ?? DEFAULT_PET) : await openai.generateBeanImage();
       imageVersion += 1;
-      beanImage = { png: result.png, version: imageVersion, model: result.model };
+      beanImage = { png: result.png, version: imageVersion, model: result.model, key: imageKey() };
       const image: BeanImageState = { status: 'ready', url: `/api/bean/image.png?v=${imageVersion}`, model: result.model };
+      // Note for UI: this is a 2D portrait/texture of the pet, not a 3D model.
       session.setBeanImage(image);
       setStatus('image', 'live', 'Bean image generated.');
       res.json({ ok: true, image });

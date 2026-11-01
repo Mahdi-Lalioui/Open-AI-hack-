@@ -41,3 +41,29 @@ export function parseImageResponse(response: unknown): Buffer {
   }
   return bytes;
 }
+
+import type { PetSpec } from '../../shared/creations';
+
+/** 2D portrait/skin of the user's pet built from its parts (a flat texture, not a 3D model). */
+export function petImagePrompt(pet: PetSpec): string {
+  const eyes = `${pet.eyeCount} ${pet.eyeStyle} eye${pet.eyeCount > 1 ? 's' : ''}`;
+  const parts = [
+    `a ${pet.bodyShape} body in ${pet.bodyColor} with ${pet.accentColor} accents`,
+    eyes,
+    pet.ears === 'none' ? 'no ears' : `${pet.ears} ears`,
+    pet.legs ? `${pet.legs} little legs` : 'no legs',
+    pet.tail === 'none' ? 'no tail' : `a ${pet.tail} tail`,
+    pet.mouth === 'none' ? 'no mouth' : `a ${pet.mouth === 'open' ? 'open happy' : 'smiling'} mouth`,
+    ...(pet.extras.length ? [`extras: ${pet.extras.join(', ')}`] : []),
+  ];
+  return [
+    `A cute 2D character portrait of a friendly pet creature named ${pet.name.replace(/[^\p{L}\p{N} '-]/gu, '')}:`,
+    `${parts.join('; ')}.`,
+    'Flat 2D sticker illustration, clean outline, soft shading, front view, centered, full body,',
+    'transparent background. No text, no letters, no frame.',
+  ].join(' ');
+}
+
+export function buildPetImageRequest(model: string, pet: PetSpec) {
+  return { ...buildImageRequest(model), prompt: petImagePrompt(pet) };
+}
