@@ -112,7 +112,11 @@ export async function pixelStats(page: Page, target: Locator) {
  * (every error-correction level and mask pattern is tried, so render options don't matter).
  */
 export async function qrEncodes(page: Page, target: Locator, text: string) {
-  const png = await target.screenshot();
+  // Prefer the image's own pixels (data URL) over a screenshot, which can be clipped or scaled.
+  const src = await target.getAttribute('src');
+  const png = src?.startsWith('data:image/png;base64,')
+    ? Buffer.from(src.slice('data:image/png;base64,'.length), 'base64')
+    : await target.screenshot();
   const { width, height, data } = await decodePngInPage(page, png);
   const dark = (x: number, y: number) => {
     const i = (y * width + x) * 4;

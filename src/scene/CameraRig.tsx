@@ -9,13 +9,13 @@ import type { CameraCommand } from './types';
 const POLAR = 0.98;
 const AZIMUTH = 0.35;
 const MIN_D = 5;
-const MAX_D = 30;
+const MAX_D = 45;
 
 export function defaultDistance(aspect: number): number {
   const vHalf = Math.tan(THREE.MathUtils.degToRad(35 / 2));
   const fitW = 6.9 / (vHalf * Math.max(aspect, 0.2)) + 1.5;
   const fitH = 4.2 / vHalf + 1.5;
-  return Math.min(26, Math.max(11, fitW, fitH));
+  return Math.min(40, Math.max(11, fitW, fitH));
 }
 
 interface Anim {

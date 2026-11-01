@@ -25,8 +25,8 @@ test('pet: guest Feed lowers hunger and increments feed count on both screens', 
   const hostErrors = trackErrors(page);
   await buildExample(page, 'pet');
   await expect(page.getByTestId('pet-hunger')).toBeVisible();
+  await expect.poll(async () => (await getState(request)).creation?.mode).toBe('pet');
   const s0 = await getState(request);
-  expect(s0.creation?.mode).toBe('pet');
   const feeds0 = s0.pet!.counts.feed;
   const g = await newGuest(browser);
   await g.page.goto('/join');
