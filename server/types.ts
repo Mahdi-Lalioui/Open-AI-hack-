@@ -59,7 +59,7 @@ export interface LiveSessionApi {
   setApiStatus(kind: ApiKind, entry: Partial<ApiStatusEntry>): void;
 
   buildCreation(input: import('./creation/schemas').BuildCreationInput): import('../shared/creations').CreationConfig;
-  interact(input: import('./creation/schemas').InteractionInput, meta?: { ip?: string }): unknown;
+  interact(input: import('./creation/schemas').InteractionInput, meta?: { ip?: string }): import('./session').InteractionResult | import('../shared/types').ApiError;
   setPetAction(action: import('../shared/creations').PetActionName, by?: string | null, durationMs?: number): void;
 
   /** Clears timers. */
