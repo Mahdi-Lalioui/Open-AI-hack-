@@ -161,4 +161,3 @@ export function World(props: WorldProps) {
   );
 }
 
-export { PALETTE };
