@@ -35,6 +35,7 @@ describe('without an API key', () => {
     const { app } = appWith();
     const res = await request(app).get('/api/design/status');
     expect(res.body.ai.configured).toBe(false);
+    expect(res.body.liveTest).toBe(true);
     expect(res.body.templates.length).toBe(DESIGN_TEMPLATES.length);
     expect(res.body.formats.map((f: { id: string }) => f.id)).toContain('scad');
   });
@@ -120,6 +121,24 @@ describe('without an API key', () => {
     expect((stl.body as Buffer).readUInt32LE(80)).toBeGreaterThan(0);
     expect((await request(app).post('/api/design/export').send({ id, format: 'toString' })).status).toBe(400);
     expect((await request(app).post('/api/design/export').send({ id: 'nope', format: 'stl' })).status).toBe(404);
+  });
+
+  it('survives landing on a server instance that never saw the design', async () => {
+    const first = appWith();
+    const { body } = await request(first.app).post('/api/design/interpret').send({ templateId: 'desk_organiser' });
+    const { id, blueprint } = body.design;
+    const other = appWith();
+    const lost = await request(other.app).post('/api/design/export').send({ id, format: 'scad' });
+    expect(lost.status).toBe(404);
+    const exported = await request(other.app).post('/api/design/export').send({ id, format: 'scad', current: blueprint });
+    expect(exported.status).toBe(200);
+    expect(exported.text).toContain('pen_bin_width');
+    const third = appWith();
+    const refined = await request(third.app).post('/api/design/refine').send({ id, instruction: 'taller', current: blueprint });
+    expect(refined.status).toBe(200);
+    const fourth = appWith();
+    const bad = await request(fourth.app).post('/api/design/export').send({ id, format: 'scad', current: { name: 'not a blueprint' } });
+    expect(bad.status).toBe(404);
   });
 
   it('opens a saved Blueprint, and refuses an invalid one', async () => {

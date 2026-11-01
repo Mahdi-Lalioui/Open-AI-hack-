@@ -47,7 +47,7 @@ export function Examples({ reducedMotion }: { reducedMotion: boolean }) {
           <h2 id="lp-examples-title" className="lp-h2" data-rv>Pick one up and turn it around</h2>
           <p data-rv>
             These are the examples that come with VDraw, and each one is a real Blueprint running live on this page rather than a picture of one.
-            Drag a model to turn it, click a part to find out what it's for, or pull the whole thing apart to see how it fits together.
+            Drag a model to turn it or click a part to find out what it's for, and if you want to see how everything fits together, there's an exploded view.
           </p>
         </header>
 

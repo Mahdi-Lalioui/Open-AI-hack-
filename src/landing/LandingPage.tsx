@@ -68,6 +68,14 @@ export function LandingPage() {
   const root = useRef<HTMLDivElement>(null);
   const grid = useRef<HTMLDivElement>(null);
   useFonts();
+  // styles.css turns on smooth scrolling for the whole document, which anchor links shouldn't do here with reduced motion.
+  useEffect(() => {
+    if (!reducedMotion) return;
+    const html = document.documentElement;
+    const previous = html.style.scrollBehavior;
+    html.style.scrollBehavior = 'auto';
+    return () => { html.style.scrollBehavior = previous; };
+  }, [reducedMotion]);
   useReveal(root, reducedMotion);
   useParallax(grid, reducedMotion);
 
@@ -99,7 +107,7 @@ export function LandingPage() {
               <h2 className="lp-h3">What to expect from a result</h2>
               <p>
                 VDraw builds designs from simple solids, namely boxes, cylinders, cones, spheres, ellipsoids, and open-top boxes and cups.
-                It doesn't do rounded fillets, boolean cut-outs or free-form meshes, so a result is best treated as a starting point that you can open in CAD and keep working on.
+                It can't make rounded fillets or boolean cut-outs, and free-form meshes are out as well, so a result is best treated as a starting point that you can open in CAD and keep working on.
               </p>
             </div>
             <div className="lp-close-main" data-rv>

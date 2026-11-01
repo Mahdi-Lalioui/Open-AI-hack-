@@ -15,7 +15,7 @@ import { BlueprintViewport } from './BlueprintViewport';
 import { Inspector } from './Inspector';
 import { LiveCards, LiveStage } from './LiveTest';
 import { SketchPad, type SketchPadHandle } from './SketchPad';
-import { blobToBase64, exportFile, getDesign, getStatus, interpret, refine, saveEdit, saveFile, transcribe, undo } from './studioApi';
+import { blobToBase64, shrinkImage, exportFile, getDesign, getStatus, interpret, refine, saveEdit, saveFile, transcribe, undo } from './studioApi';
 import './studio.css';
 
 type InputMode = 'sketch' | 'image';
@@ -31,9 +31,10 @@ const formatBytes = (n: number) => (n < 1024 * 1024 ? `${Math.max(1, Math.round(
 
 export function StudioPage() {
   const reducedMotion = useReducedMotion();
-  const { state: liveState, connection } = useLiveState();
   const [status, setStatus] = useState<StudioStatus | null>(null);
   const [statusError, setStatusError] = useState<string | null>(null);
+  const liveAvailable = status?.liveTest ?? false;
+  const { state: liveState, connection } = useLiveState(liveAvailable);
   const [design, setDesign] = useState<StudioDesign | null>(null);
   const [revealKey, setRevealKey] = useState('none');
   const [inputMode, setInputMode] = useState<InputMode>('sketch');
@@ -134,7 +135,7 @@ export function StudioPage() {
   }, []);
 
   const imageForRequest = async (): Promise<{ base64: string } | undefined> => {
-    if (inputMode === 'image' && upload) return { base64: await blobToBase64(upload.file) };
+    if (inputMode === 'image' && upload) return { base64: await blobToBase64(await shrinkImage(upload.file)) };
     if (inputMode === 'sketch') {
       const blob = await sketch.current?.toBlob();
       if (blob) return { base64: await blobToBase64(blob) };
@@ -164,7 +165,7 @@ export function StudioPage() {
   const applyRefine = (engine?: 'rules') => {
     if (!design || !instruction.trim()) return;
     void run(engine === 'rules' || !ai ? 'Applying your change…' : 'Refining the design: about 30 seconds…', async () => {
-      accept(await refine(design.id, instruction.trim(), engine), false);
+      accept(await refine(design.id, instruction.trim(), engine, design.blueprint), false);
       setInstruction('');
     });
   };
@@ -225,17 +226,17 @@ export function StudioPage() {
     setView(next);
     if (!design) return;
     if (next === 'cad' && cadSource === null) {
-      void run('Generating CAD source…', async () => setCadSource(await (await exportFile(design.id, 'scad')).blob.text()));
+      void run('Generating CAD source…', async () => setCadSource(await (await exportFile(design.id, 'scad', design.blueprint)).blob.text()));
     }
     if (next === 'web' && webPage === null) {
-      void run('Generating the web page…', async () => setWebPage(await (await exportFile(design.id, 'webPage')).blob.text()));
+      void run('Generating the web page…', async () => setWebPage(await (await exportFile(design.id, 'webPage', design.blueprint)).blob.text()));
     }
   };
 
   const download = (format: string) => {
     if (!design) return;
     void run('Preparing your file…', async () => {
-      const file = await exportFile(design.id, format);
+      const file = await exportFile(design.id, format, design.blueprint);
       saveFile(file);
       setExported((m) => ({ ...m, [format]: `${file.filename} · ${formatBytes(file.blob.size)}` }));
     });
@@ -265,7 +266,7 @@ export function StudioPage() {
               {ai ? `AI ready · ${status.ai.model}` : 'No API key: examples and rule-based edits only'}
             </span>
           )}
-          <ConnectionPill connection={connection} />
+          {liveAvailable && <ConnectionPill connection={connection} />}
           <button type="button" className={`btn btn-present ${presenting ? 'is-active' : ''}`} data-testid="presentation-toggle" aria-pressed={presenting} onClick={() => setPresenting((v) => !v)}>
             <Icon name={presenting ? 'close' : 'present'} size={18} />
             {presenting ? 'Back to studio' : 'Present'}
@@ -346,7 +347,7 @@ export function StudioPage() {
 
         <section className="col studio-center" aria-label="Creation viewport">
           <div className="studio-tabs" role="tablist" aria-label="Output">
-            {([['3d', '3D model'], ['cad', 'CAD source'], ['web', 'Web page'], ...(liveMode ? [['live', 'Live test']] as const : [])] as const).map(([id, label]) => (
+            {([['3d', '3D model'], ['cad', 'CAD source'], ['web', 'Web page'], ...(liveMode && liveAvailable ? [['live', 'Live test']] as const : [])] as const).map(([id, label]) => (
               <button key={id} type="button" role="tab" aria-selected={view === id} className={`studio-tab ${view === id ? 'studio-tab-on' : ''}`} data-testid={`view-${id}`} disabled={!design} onClick={() => openView(id)}>
                 {label}
               </button>

@@ -108,7 +108,7 @@ export function Hero({ reducedMotion }: { reducedMotion: boolean }) {
                 <SketchLines blueprint={design.blueprint} drawKey={`${design.id}:${run}`} animate={webgl && !reducedMotion} className={phase === 'solid' ? 'is-fading' : ''} />
               )}
             </div>
-            {note && !reducedMotion && <span className="lp-note" key={note} aria-hidden="true">{note}</span>}
+            {note && !reducedMotion && webgl && <span className="lp-note" key={note} aria-hidden="true">{note}</span>}
           </div>
           <dl className="lp-titleblock">
             <div className="lp-tb-name"><dt>Design</dt><dd>{design.title}</dd></div>
@@ -129,6 +129,7 @@ export function Hero({ reducedMotion }: { reducedMotion: boolean }) {
             </button>
           )}
         </div>
+        <p className="lp-hero-source">Each drawing is traced from the built-in example it turns into, so the model you see is the real thing.</p>
       </div>
     </section>
   );

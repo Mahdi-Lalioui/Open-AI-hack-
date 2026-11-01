@@ -32,9 +32,10 @@ function ensureSocket() {
   });
 }
 
-export function useLiveState(): { state: PublicState | null; connection: Connection } {
+export function useLiveState(enabled = true): { state: PublicState | null; connection: Connection } {
   const [, force] = useState(0);
   useEffect(() => {
+    if (!enabled) return undefined;
     ensureSocket();
     const l = () => force((n) => n + 1);
     listeners.add(l);
@@ -42,6 +43,6 @@ export function useLiveState(): { state: PublicState | null; connection: Connect
     return () => {
       listeners.delete(l);
     };
-  }, []);
+  }, [enabled]);
   return { state: latest, connection };
 }

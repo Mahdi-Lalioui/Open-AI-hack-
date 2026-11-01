@@ -28,7 +28,7 @@ export function Inputs({ reducedMotion }: { reducedMotion: boolean }) {
             <li className="lp-way" data-rv>
               <div className="lp-way-art lp-way-paper">{planter && live && <SketchLines blueprint={planter} animate />}{planter && !live && <SketchLines blueprint={planter} animate={false} />}</div>
               <h3>Draw it</h3>
-              <p>Sketch on the canvas with a mouse, a finger or a pen. Wobbly lines are welcome, and so are arrows and scribbled notes.</p>
+              <p>Sketch on the canvas with a mouse or a finger, or a pen if you have one. Wobbly lines are fine, because nobody is marking your drawing.</p>
             </li>
             <li className="lp-way" data-rv>
               <div className="lp-way-art lp-way-photos" aria-hidden="true">
@@ -56,7 +56,7 @@ export function Inputs({ reducedMotion }: { reducedMotion: boolean }) {
           <div className="lp-blueprint" data-rv>
             <h3 className="lp-h3">All of it becomes one Blueprint</h3>
             <p>
-              Whichever way you start, the AI fills in a structured description of the object that lists every part with its size, its material and how it moves.
+              Whichever way you start, the AI fills in a structured description of the object that lists every part with its size and material, plus any way it moves.
               That description is the Blueprint, and it gets checked against real limits before anything is drawn. The AI only ever supplies this data, so nothing it writes runs as code.
             </p>
             <figure className="lp-json">

@@ -36,15 +36,17 @@ const refineSchema = z.object({
   instruction: z.string().trim().min(1).max(1000).optional(),
   blueprint: z.unknown().optional(),
   summary: z.string().trim().max(120).optional(),
+  /** What the browser is showing, in case this server instance never saw the design. */
+  current: z.unknown().optional(),
   engine,
 });
-const exportSchema = z.object({ id: z.string().max(64), format: z.string().max(32), version: z.number().int().positive().optional() });
+const exportSchema = z.object({ id: z.string().max(64), format: z.string().max(32), version: z.number().int().positive().optional(), current: z.unknown().optional() });
 
 function sendError(res: Response, status: number, code: string, error: string, details?: string[]) {
   res.status(status).json({ ok: false, error, code, details });
 }
 
-export function createDesignRouter(ai: DesignAi): Router {
+export function createDesignRouter(ai: DesignAi, options: { liveTest: boolean } = { liveTest: true }): Router {
   const router = Router();
   const designs = new Map<string, Stored>();
   let nextId = 1;
@@ -79,6 +81,21 @@ export function createDesignRouter(ai: DesignAi): Router {
     return addVersion(d, blueprint, warnings, source, summary, notes);
   };
 
+  /**
+   * Serverless hosts can send each request to a fresh instance with empty memory.
+   * The browser's copy is validated like any other input, and nothing else is taken on trust.
+   */
+  const findOrRestore = (id: string, current: unknown): Stored | null => {
+    const known = designs.get(id);
+    if (known || current === undefined) return known ?? null;
+    const checked = validateBlueprint(current);
+    if (!checked.ok) return null;
+    const restored: Stored = { id, versions: [] };
+    designs.set(id, restored);
+    addVersion(restored, checked.blueprint, checked.warnings, { kind: 'file', label: 'Restored from your browser' }, 'Restored', []);
+    return restored;
+  };
+
   /** A failed design never replaces the current one, so the host can keep going on stage. */
   const sendFailure = (res: Response, err: unknown) => {
     if (err instanceof RuleError) return sendError(res, 422, 'rules_not_understood', err.message);
@@ -111,6 +128,7 @@ export function createDesignRouter(ai: DesignAi): Router {
       templates: DESIGN_TEMPLATES.map(({ id, title, scenario }) => ({ id, title, scenario })),
       formats: Object.entries(EXPORT_FORMATS).map(([id, f]) => ({ id, label: f.label, extension: f.extension })),
       ruleHelp: RULE_HELP,
+      liveTest: options.liveTest,
     });
   });
 
@@ -168,8 +186,8 @@ export function createDesignRouter(ai: DesignAi): Router {
   router.post('/refine', async (req: Request, res: Response) => {
     const parsed = refineSchema.safeParse(req.body ?? {});
     if (!parsed.success) return sendError(res, 400, 'invalid_input', 'That request is not valid.');
-    const { id, instruction, blueprint: edited, summary, engine: wanted } = parsed.data;
-    const design = designs.get(id);
+    const { id, instruction, blueprint: edited, summary, engine: wanted, current: shown } = parsed.data;
+    const design = findOrRestore(id, shown);
     if (!design) return sendError(res, 404, 'not_found', 'That design is no longer on the server. It may have restarted; start again.');
     const current = design.versions[design.versions.length - 1].blueprint;
 
@@ -202,8 +220,8 @@ export function createDesignRouter(ai: DesignAi): Router {
   router.post('/export', (req: Request, res: Response) => {
     const parsed = exportSchema.safeParse(req.body ?? {});
     if (!parsed.success) return sendError(res, 400, 'invalid_input', 'That request is not valid.');
-    const { id, format, version } = parsed.data;
-    const design = designs.get(id);
+    const { id, format, version, current: shown } = parsed.data;
+    const design = findOrRestore(id, shown);
     if (!design) return sendError(res, 404, 'not_found', 'That design is no longer on the server. It may have restarted; start again.');
     if (!Object.prototype.hasOwnProperty.call(EXPORT_FORMATS, format)) return sendError(res, 400, 'unknown_format', `Unknown format. Use: ${Object.keys(EXPORT_FORMATS).join(', ')}.`);
     const v = version ? design.versions.find((x) => x.version === version) : design.versions[design.versions.length - 1];

@@ -3,14 +3,13 @@
  * and downloads are generated from that same Blueprint by the real exporters.
  */
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { EXPORT_FORMATS, exportScad, exportWebComponent, exportWebPage, fileBaseName, type ExportFormat } from '../../shared/blueprint/export';
+import { EXPORT_FORMATS, exportScad, fileBaseName, type ExportFormat } from '../../shared/blueprint/export';
 import { scaleBlueprint } from '../../shared/blueprint/edit';
 import type { DesignBlueprint } from '../../shared/blueprint/types';
 import { validateBlueprint } from '../../shared/blueprint/validate';
 import { designById, LandingViewport, formatSize } from './shared';
 
 const original = designById('desk_organiser')?.blueprint as DesignBlueprint;
-const STEPS = 4;
 const BIN_DEFAULT = 110;
 
 function edited(wider: boolean, binHeight: number): DesignBlueprint {
@@ -28,26 +27,20 @@ function edited(wider: boolean, binHeight: number): DesignBlueprint {
   return result.ok ? result.blueprint : original;
 }
 
-/** Real lines from the generated file: the overall size, the variables of three parts and the tray's call. */
+/** Real lines from the generated file, chosen because they are the ones the edits on this page change. */
 function scadExcerpt(bp: DesignBlueprint): string[] {
   const lines = exportScad(bp).split('\n');
-  const block = (name: string) => {
-    const start = lines.indexOf(`/* [${name}] */`);
-    if (start < 0) return [];
-    const end = lines.indexOf('', start);
-    return lines.slice(start, end);
-  };
+  const picked = (...prefixes: string[]) => lines.filter((l) => prefixes.some((p) => l.startsWith(p)));
   const tray = lines.findIndex((l) => l.trim() === '// Phone tray');
   return [
     lines.find((l) => l.startsWith('// Overall')) ?? '',
     '',
-    ...block('Base plate'),
+    ...picked('/* [Base plate] */', 'base_width'),
     '',
-    ...block('Pen bin'),
+    ...picked('/* [Pen bin] */', 'pen_bin_height', 'pen_bin_wall'),
     '',
-    ...block('Phone tray'),
+    ...picked('/* [Phone tray] */', 'tray_width'),
     '',
-    '// ...',
     ...(tray >= 0 ? lines.slice(tray, tray + 2).map((l) => l.trim()) : []),
   ];
 }
@@ -69,16 +62,12 @@ function ScadPanel({ blueprint }: { blueprint: DesignBlueprint }) {
   );
 }
 
-function fileFor(bp: DesignBlueprint, format: ExportFormat): string {
-  switch (format) {
-    case 'webComponent': return exportWebComponent(bp);
-    case 'webPage': return exportWebPage(bp);
-    case 'blueprint': return `${JSON.stringify(bp, null, 2)}\n`;
-    default: return exportScad(bp);
-  }
-}
+type TextFormat = Extract<ExportFormat, 'scad' | 'blueprint'>;
 
-function download(bp: DesignBlueprint, format: ExportFormat) {
+const fileFor = (bp: DesignBlueprint, format: TextFormat): string => (format === 'scad' ? exportScad(bp) : `${JSON.stringify(bp, null, 2)}
+`);
+
+function download(bp: DesignBlueprint, format: TextFormat) {
   const { extension, mime } = EXPORT_FORMATS[format];
   const url = URL.createObjectURL(new Blob([fileFor(bp, format)], { type: mime }));
   const link = document.createElement('a');
@@ -90,11 +79,16 @@ function download(bp: DesignBlueprint, format: ExportFormat) {
   window.setTimeout(() => URL.revokeObjectURL(url), 2000);
 }
 
-const FILES: { format: ExportFormat; name: string; use: string }[] = [
+const HERE: { format: TextFormat; name: string; use: string }[] = [
   { format: 'scad', name: 'OpenSCAD .scad', use: 'Editable CAD, with every size as a named variable' },
   { format: 'blueprint', name: 'Blueprint .json', use: 'The design itself, which you can reopen in VDraw' },
-  { format: 'webPage', name: 'Product page .html', use: 'A standalone page you can host anywhere' },
-  { format: 'webComponent', name: 'Web component .js', use: 'Adds a <vdraw-model> tag to any site, with no dependencies' },
+];
+
+const IN_STUDIO: { name: string; use: string }[] = [
+  { name: 'STL', use: 'For a slicer and a 3D printer' },
+  { name: 'GLB', use: 'For other 3D apps, with the animation included' },
+  { name: 'Product page .html', use: 'A standalone page you can host anywhere' },
+  { name: 'Web component .js', use: 'Adds a <vdraw-model> tag to any site, with no dependencies' },
 ];
 
 export function Story({ reducedMotion }: { reducedMotion: boolean }) {
@@ -134,7 +128,7 @@ export function Story({ reducedMotion }: { reducedMotion: boolean }) {
             <div className="lp-sheet lp-sheet--story">
               <div className="lp-sheet-stage">
                 <div className="lp-frame">
-                  <LandingViewport blueprint={bp} revealKey="story" clip={clip} explode={step === 1 ? 1 : 0} spin={step >= 2 && step < STEPS} reducedMotion={reducedMotion} />
+                  <LandingViewport blueprint={bp} revealKey="story" clip={clip} explode={step === 1 ? 1 : 0} spin={step >= 2} reducedMotion={reducedMotion} />
                 </div>
                 <span className="lp-size-chip">{formatSize(bp)}</span>
               </div>
@@ -170,7 +164,7 @@ export function Story({ reducedMotion }: { reducedMotion: boolean }) {
             <article ref={ref(2)} className={`lp-step ${step === 2 ? 'is-active' : ''}`}>
               <h3 className="lp-h3">Watch the parts do their job</h3>
               <p>
-                A design can carry animations of its own, like these modules lifting off their pegs, a drawer sliding out or a lid coming up.
+                A design can carry animations of its own, like these modules lifting off their pegs or the drawer sliding out of the bedside table.
                 They are part of the Blueprint, so they travel with the model when you export it as a GLB for other 3D apps.
               </p>
             </article>
@@ -178,20 +172,21 @@ export function Story({ reducedMotion }: { reducedMotion: boolean }) {
             <article ref={ref(3)} className={`lp-step ${step === 3 ? 'is-active' : ''}`}>
               <h3 className="lp-h3">Take it away as real files</h3>
               <p>
-                All the formats come from the same Blueprint. Four of them are simple enough to build right here in your browser, so these buttons give you
+                All the formats come from the same Blueprint. Two of them can be generated on the spot by this page, so these buttons give you
                 the actual files for the organiser above, with your changes included.
               </p>
               <div className="lp-story-code lp-story-code--inline"><ScadPanel blueprint={bp} /></div>
               <ul className="lp-files">
-                {FILES.map((f) => (
+                {HERE.map((f) => (
                   <li key={f.format}>
                     <div><strong>{f.name}</strong><span>{f.use}</span></div>
                     <button type="button" className="lp-btn" onClick={() => download(bp, f.format)} aria-label={`Download ${f.name}`}>Download</button>
                   </li>
                 ))}
-                <li className="lp-files-studio">
-                  <div><strong>STL and GLB</strong><span>For 3D printing and for 3D apps. These are binary files that the studio builds for you, so you'll find them on its Export menu.</span></div>
-                </li>
+              </ul>
+              <p className="lp-files-note">The studio builds the other four for you, and you download them from there.</p>
+              <ul className="lp-files lp-files--studio">
+                {IN_STUDIO.map((f) => <li key={f.name}><div><strong>{f.name}</strong><span>{f.use}</span></div></li>)}
               </ul>
             </article>
           </div>

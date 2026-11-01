@@ -17,16 +17,18 @@ export interface AppDeps {
   session: LiveSessionApi;
   openai: OpenAIAdapter;
   designAi?: DesignAi;
+  /** False where there is no long-running server for the shared live test. */
+  liveTest?: boolean;
 }
 
-export function createApp({ session, openai, designAi = NOT_CONFIGURED_DESIGN_AI }: AppDeps) {
+export function createApp({ session, openai, designAi = NOT_CONFIGURED_DESIGN_AI, liveTest = true }: AppDeps) {
   const app = express();
   app.disable('x-powered-by');
   // Behind a tunnel/reverse proxy the client IP comes from X-Forwarded-For (used for rate limiting).
   app.set('trust proxy', true);
 
   // Before the 64 kB JSON limit below: design requests can carry a sketch.
-  app.use('/api/design', createDesignRouter(designAi));
+  app.use('/api/design', createDesignRouter(designAi, { liveTest }));
 
   app.use('/api', express.json({ limit: '64kb' }));
 

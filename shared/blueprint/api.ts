@@ -30,4 +30,6 @@ export interface StudioStatus {
   templates: { id: string; title: string; scenario: string }[];
   formats: { id: string; label: string; extension: string }[];
   ruleHelp: string;
+  /** False on hosts with no long-running server, such as Vercel. */
+  liveTest: boolean;
 }
