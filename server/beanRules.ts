@@ -76,10 +76,10 @@ export function exampleDecision(facts: QueueFacts): { action: BeanActionName; ex
   const slow = facts.avgWaitSec !== null && facts.avgWaitSec > facts.serviceTimeSec;
   if (canAdd && (longLine || slow)) {
     const why = longLine ? `${facts.waiting} waiting (≥ 3)` : `avg wait ${secs(facts.avgWaitSec ?? 0)} > ${secs(facts.serviceTimeSec)} service time`;
-    return { action: 'call_backup', explanation: truncate(`${EXAMPLE_PREFIX}call backup — ${why} with ${facts.workers} worker at ${facts.serviceLabel}.`) };
+    return { action: 'call_backup', explanation: truncate(`${EXAMPLE_PREFIX}call backup, ${why} with ${facts.workers} worker at ${facts.serviceLabel}.`) };
   }
   const reason = !canAdd ? 'no room for another worker' : 'the line is short';
-  return { action: 'keep_serving', explanation: truncate(`${EXAMPLE_PREFIX}keep serving — ${reason} (${describeFacts(facts)}).`) };
+  return { action: 'keep_serving', explanation: truncate(`${EXAMPLE_PREFIX}keep serving, ${reason} (${describeFacts(facts)}).`) };
 }
 
 /** Explanation for a real AI decision when the API returns no rationale of its own. */

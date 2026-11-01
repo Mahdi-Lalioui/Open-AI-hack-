@@ -5,8 +5,8 @@ import { StatusBadge } from '../components/StatusBadge';
 
 const ROWS: { kind: ApiKind; title: string; use: string }[] = [
   { kind: 'vision', title: 'Vision', use: 'reads your sketch' },
-  { kind: 'decisions', title: 'Decisions', use: 'Pet’s choice' },
-  { kind: 'image', title: 'Image', use: '2D pet portrait' },
+  { kind: 'decisions', title: 'Decisions', use: 'the pet\'s choices' },
+  { kind: 'image', title: 'Image', use: 'the pet\'s portrait' },
 ];
 
 export function ApiStatusCard({ state }: { state: PublicState | null }) {
@@ -26,7 +26,7 @@ export function ApiStatusCard({ state }: { state: PublicState | null }) {
               {e && (
                 <p className="api-detail">
                   <code className="model-id">{e.model}</code>
-                  {e.message ? <span> — {e.message}</span> : null}
+                  {e.message ? <span>: {e.message}</span> : null}
                 </p>
               )}
             </li>

@@ -43,7 +43,8 @@ async function main() {
   server.listen(config.port, config.host, () => {
     const local = `http://localhost:${config.port}`;
     console.log(`\n  VDraw ${config.isProduction ? '(production)' : '(dev)'}`);
-    console.log(`  App:          ${local}/`);
+    console.log(`  Landing page: ${local}/`);
+    console.log(`  App:          ${local}/app`);
     console.log(`  Guest page:   ${(config.publicBaseUrl ?? local) + '/join'}`);
     console.log(`  OpenAI key:   ${config.openai.apiKey ? 'configured' : 'not configured (example mode)'}`);
     if (!config.publicBaseUrl) {

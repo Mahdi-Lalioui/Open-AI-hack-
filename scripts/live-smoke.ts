@@ -1,5 +1,5 @@
 /**
- * `npm run smoke:live` — real calls against OpenAI, only when a key is configured.
+ * `npm run smoke:live`, real calls against OpenAI, only when a key is configured.
  * Prints PASS/FAIL per integration with error codes. Never prints the key.
  * Image generation runs only with --image (slow, billed).
  */
@@ -56,7 +56,7 @@ async function main() {
         name: 'Pixel', hunger: 72, happiness: 55, energy: 60, currentAction: 'idle',
         recentInteractions: { feed: 0, pet: 3, play: 1 }, lastGuest: 'Sam',
       });
-      return `action=${d.action} — ${d.explanation}`;
+      return `action=${d.action}, ${d.explanation}`;
     }),
   );
   if (process.argv.includes('--image')) {

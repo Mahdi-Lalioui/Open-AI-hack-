@@ -1,5 +1,5 @@
 /**
- * OpenAI adapter tests — mocked fetch only (no network, no real key).
+ * OpenAI adapter tests, mocked fetch only (no network, no real key).
  */
 import { describe, expect, it, vi } from 'vitest';
 import { createOpenAIAdapter, OpenAIError } from '../../server/openai';
@@ -137,7 +137,7 @@ describe('initialStatus / configuration', () => {
     const s = a.initialStatus();
     for (const kind of ['vision', 'decisions', 'image'] as const) {
       expect(s[kind].state).toBe('not_configured');
-      expect(s[kind].message).toBe('No OPENAI_API_KEY set — example mode.');
+      expect(s[kind].message).toBe('There is no OPENAI_API_KEY on the server, so this is switched off.');
     }
     expect(s.vision.model).toBe('gpt-6-astra');
     expect(s.decisions.model).toBe('gpt-6-luna');

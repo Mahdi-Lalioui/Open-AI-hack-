@@ -17,12 +17,9 @@ export interface SketchPath {
   light: boolean;
 }
 
-/**
- * BlueprintViewport's starting view. Its OrbitControls are reset on mount and reset() restores the target saved
- * when the controls were constructed, which is the origin, so that is where the camera really looks.
- */
+/** BlueprintViewport's starting camera, looking at the middle of the design as LandingViewport makes sure it does. */
 const CAMERA: V3 = [3, 2.9, 4.8];
-const TARGET: V3 = [0, 0, 0];
+const TARGET: V3 = [0, 1, 0];
 const TAN_HALF_FOV = Math.tan((40 / 2) * (Math.PI / 180));
 const SCENE_SIZE = 2.4;
 

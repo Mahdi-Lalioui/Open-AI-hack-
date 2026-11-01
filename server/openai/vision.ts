@@ -227,7 +227,7 @@ export function parseSketch(jsonText: string): RecognizedSketch {
     if (!idMap.has(n.id)) idMap.set(n.id, id);
     let label = n.label.replace(/\s+/g, ' ').trim();
     if (!label) {
-      notes.push(`Could not read the label of the ${KIND_WORD[n.kind]} — please type it.`);
+      notes.push(`Could not read the label of the ${KIND_WORD[n.kind]}, please type it.`);
       label = '?';
     } else if (label.length > LABEL_MAX) {
       notes.push(`Shortened the label "${label.slice(0, 40)}" to ${LABEL_MAX} characters.`);

@@ -1,4 +1,5 @@
 /** Pieces used by more than one landing page section: real designs, viewport wrapper, pencil lines and hooks. */
+import { _roots } from '@react-three/fiber';
 import { useEffect, useMemo, useRef, useState, type RefObject } from 'react';
 import type { AnimationClip, DesignBlueprint } from '../../shared/blueprint/types';
 import { DESIGN_TEMPLATES } from '../../shared/blueprint/templates';
@@ -109,6 +110,32 @@ export function SketchLines({ blueprint, drawKey, animate, className = '' }: Ske
   );
 }
 
+interface OrbitTarget { target: { set: (x: number, y: number, z: number) => void }; target0: { set: (x: number, y: number, z: number) => void } }
+
+/**
+ * Aims the viewport's camera at the middle of the design, y = 1. Its controls ask for that target, but reset() restores the
+ * one saved when they were constructed, the origin, which leaves the model high in the frame and an exploded view cut off.
+ */
+function useCentredView(box: RefObject<HTMLElement>, mounted: boolean) {
+  useEffect(() => {
+    if (!mounted) return;
+    let frame = 0;
+    let tries = 0;
+    const tick = () => {
+      const canvas = box.current?.querySelector('canvas');
+      const controls = canvas ? _roots.get(canvas)?.store.getState().controls as unknown as OrbitTarget | null | undefined : null;
+      if (controls?.target0) {
+        controls.target0.set(0, 1, 0);
+        controls.target.set(0, 1, 0);
+      } else if (++tries < 600) {
+        frame = requestAnimationFrame(tick);
+      }
+    };
+    frame = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frame);
+  }, [box, mounted]);
+}
+
 interface ViewportProps {
   blueprint: DesignBlueprint;
   revealKey: string;
@@ -129,6 +156,7 @@ interface ViewportProps {
 export function LandingViewport({ blueprint, revealKey, clip = null, explode = 0, spin = false, selected = null, onSelect, resetNonce = 0, reducedMotion, hidden = false }: ViewportProps) {
   const [ref, inView] = useInView<HTMLDivElement>();
   const eased = useEasedClip(clip);
+  useCentredView(ref, inView);
   useEffect(() => {
     const el = ref.current;
     if (!el) return;

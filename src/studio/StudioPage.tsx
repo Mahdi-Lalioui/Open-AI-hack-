@@ -383,8 +383,8 @@ export function StudioPage() {
             {bp && view === 'live' && <LiveStage blueprint={bp} state={liveState} reducedMotion={reducedMotion} />}
             {!bp && (
               <div className="stage-hint studio-empty">
-                <p>One idea. Multiple outputs. Real, usable creations.</p>
-                <p className="muted">Sketch or describe something, or start from a real-life example.</p>
+                <p>Your design will appear here.</p>
+                <p className="muted">Sketch or describe something on the left, or start from one of the real-life examples.</p>
               </div>
             )}
             {busy && <div className="studio-busy" role="status" data-testid="busy"><span className="studio-spinner" aria-hidden="true" />{busy}</div>}
@@ -475,13 +475,7 @@ export function StudioPage() {
             </>
           ) : (
             <Card id="what" title="What you'll get">
-              <ul className="studio-promise">
-                <li>An interactive 3D model you can rotate, animate and take apart</li>
-                <li>Editable CAD source for OpenSCAD</li>
-                <li>STL for 3D printing and GLB for any 3D app</li>
-                <li>A web component and a product page</li>
-                <li>A live test for circuits and other designs that do something</li>
-              </ul>
+              <p className="studio-description">Every design gives you an interactive 3D model that you can rotate, animate and take apart, along with editable OpenSCAD source, STL and GLB files, a web component and a product page. Circuits and other designs that do something also get a live test that people can join from their phones.</p>
             </Card>
           )}
         </section>

@@ -65,7 +65,7 @@ export function Inspector({ blueprint: bp, selectedId, onSelect, onEdit, busy }:
         <NumberField label="Height" unit="mm" value={bp.dimensions.height} min={1} testId="overall-height" onCommit={(v) => resize('height', v)} />
       </div>
       <p className="muted small inspector-note">
-        {bp.components.length} parts · up to {cm3 < 100 ? cm3.toFixed(1) : Math.round(cm3)} cm³ of material. Resizing keeps wall thickness.
+        This design has {bp.components.length} parts and uses up to {cm3 < 100 ? cm3.toFixed(1) : Math.round(cm3)} cm³ of material. Resizing it keeps the wall thickness the same.
       </p>
 
       <h3 className="sub">Materials</h3>

@@ -47,7 +47,7 @@ export interface LiveSessionApi {
   addOrder(input: AddOrderInput, meta?: { ip?: string }): AddOrderResult | ApiError;
   /**
    * Adds the second worker (cap MAX_WORKERS). If expectedEpoch is given and differs from the
-   * current epoch (a reset happened), refuses — protects against stale AI responses.
+   * current epoch (a reset happened), refuses, protects against stale AI responses.
    */
   addWorker(by: WorkerAddedBy, opts?: { expectedEpoch?: number }): AddWorkerResult;
 

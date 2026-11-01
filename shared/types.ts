@@ -60,7 +60,7 @@ export interface RecognizedSketch {
   serviceTimeSec: number | null;
   workers: number | null;
   arrivalIntervalSec: number | null;
-  /** Things the model could not read or was unsure about — shown to the host. */
+  /** Things the model could not read or was unsure about, shown to the host. */
   uncertainties: string[];
 }
 
@@ -72,7 +72,7 @@ export interface WorldConfig {
   assumptions: Assumptions;
   /** example = built-in example, no image analysis; vision = from a live vision read; manual = edited by hand. */
   source: WorldSource;
-  /** Increments on every build — the 3D scene plays the reveal when this changes. */
+  /** Increments on every build, the 3D scene plays the reveal when this changes. */
   version: number;
   builtAtWall: number;
 }

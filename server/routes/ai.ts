@@ -26,8 +26,8 @@ const IMAGE_TYPES: ImageMime[] = ['image/png', 'image/jpeg', 'image/webp'];
 export const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
 
 const NOT_CONFIGURED_VISION =
-  'Image analysis needs an OPENAI_API_KEY. The app is in example mode: use the built-in example sketch or edit the steps by hand.';
-const NOT_CONFIGURED_IMAGE = 'Generating Bean needs an OPENAI_API_KEY. The app is in example mode: the default Bean is shown.';
+  'Reading an image needs an OPENAI_API_KEY on the server, so for now you can start from a built-in example instead.';
+const NOT_CONFIGURED_IMAGE = 'Drawing a portrait needs an OPENAI_API_KEY on the server.';
 
 function sendError(res: Response, status: number, code: string, error: string) {
   const body: ApiError = { ok: false, error, code };
@@ -82,7 +82,7 @@ export function createAiRouter(session: LiveSessionApi, openai: OpenAIAdapter): 
     session.setApiStatus(kind, { state, message, model: openai.models[kind], updatedAt: Date.now() });
 
   // -------------------------------------------------------------------------
-  // POST /api/vision/analyze — raw image body
+  // POST /api/vision/analyze, raw image body
   // -------------------------------------------------------------------------
   router.post(
     '/vision/analyze',
@@ -155,12 +155,12 @@ export function createAiRouter(session: LiveSessionApi, openai: OpenAIAdapter): 
   );
 
   // -------------------------------------------------------------------------
-  // POST /api/bean/ask — one decision, applied only by app code under clear rules
+  // POST /api/bean/ask, one decision, applied only by app code under clear rules
   // -------------------------------------------------------------------------
   router.post('/bean/ask', async (_req: Request, res: Response) => {
     const start = session.getState();
     if (start.bean.thinking || askBusy) {
-      sendError(res, 409, 'busy', 'Bean is already thinking. Wait for the answer.');
+      sendError(res, 409, 'busy', 'It is still thinking, so wait for that answer first.');
       return;
     }
     const epoch = start.sim.epoch;
@@ -188,7 +188,7 @@ export function createAiRouter(session: LiveSessionApi, openai: OpenAIAdapter): 
         explanation = rule.explanation;
         source = 'example';
       } else {
-        setStatus('decisions', 'waiting', 'Asking Bean…');
+        setStatus('decisions', 'waiting', 'Asking the pet…');
         try {
           const ai = await openai.decide(facts);
           action = ai.action;
@@ -212,10 +212,10 @@ export function createAiRouter(session: LiveSessionApi, openai: OpenAIAdapter): 
       let applied = false;
       let notAppliedReason: string | undefined;
       if (now.sim.epoch !== epoch) {
-        notAppliedReason = 'The session was reset while Bean was thinking — nothing was changed.';
+        notAppliedReason = 'The session was reset while it was thinking, so nothing was changed.';
       } else if (action === 'call_backup') {
         if (!now.bean.aiManagement) {
-          notAppliedReason = 'AI management is off — use Add worker to act on it.';
+          notAppliedReason = 'AI management is off, so use Add worker to act on it.';
         } else {
           const added = session.addWorker(source === 'ai' ? 'ai' : 'example', { expectedEpoch: epoch });
           if (added.ok) applied = true;
@@ -283,7 +283,7 @@ export function createAiRouter(session: LiveSessionApi, openai: OpenAIAdapter): 
       let applied = false;
       let notAppliedReason: string | undefined;
       if (now.sim.epoch !== epoch || now.creation?.mode !== 'pet' || now.creation.version !== version) {
-        notAppliedReason = 'The pet was rebuilt or reset while it was thinking — nothing was changed.';
+        notAppliedReason = 'The pet was rebuilt or reset while it was thinking, so nothing was changed.';
       } else {
         const r = applyPetAction(session, action);
         applied = r.ok;
@@ -311,7 +311,7 @@ export function createAiRouter(session: LiveSessionApi, openai: OpenAIAdapter): 
   }
 
   // -------------------------------------------------------------------------
-  // POST /api/bean/image — generate once on request; GET serves cached bytes
+  // POST /api/bean/image, generate once on request; GET serves cached bytes
   // -------------------------------------------------------------------------
   router.post('/bean/image', async (_req: Request, res: Response) => {
     if (!openai.configured) {
@@ -319,7 +319,7 @@ export function createAiRouter(session: LiveSessionApi, openai: OpenAIAdapter): 
       return;
     }
     if (imageBusy || session.getState().bean.image.status === 'loading') {
-      sendError(res, 409, 'busy', 'Bean is already being drawn. Wait for it to finish.');
+      sendError(res, 409, 'busy', 'A portrait is already being drawn, so wait for it to finish.');
       return;
     }
     if (beanImage && beanImage.key === imageKey()) {
@@ -372,7 +372,7 @@ export function createAiRouter(session: LiveSessionApi, openai: OpenAIAdapter): 
   router.get('/bean/image.png', (_req: Request, res: Response) => {
     const currentImage = session.getState().bean.image;
     if (!beanImage || beanImage.key !== imageKey() || currentImage.status !== 'ready') {
-      sendError(res, 404, 'not_found', 'No Bean image has been generated yet.');
+      sendError(res, 404, 'not_found', 'No portrait has been generated yet.');
       return;
     }
     res.set('Cache-Control', 'no-store');

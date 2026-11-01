@@ -1,8 +1,8 @@
 /**
  * Renders hand-drawn-looking example sketches with headless Chromium:
- *   public/example-pet.png      — a cute creature
- *   public/example-circuit.png  — battery, switch, resistor, LED in one loop
- *   public/example-sketch.png   — Customers → Barista → Pickup (legacy)
+ *   public/example-pet.png, a cute creature
+ *   public/example-circuit.png, battery, switch, resistor, LED in one loop
+ *   public/example-sketch.png, Customers → Barista → Pickup (legacy)
  * Run: npx tsx scripts/make-example-sketch.ts
  */
 import path from 'node:path';

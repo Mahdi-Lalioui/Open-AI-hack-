@@ -28,28 +28,28 @@ export function AskCard({ state, petName }: { state: PublicState | null; petName
     try { await api.generateBeanImage(); } catch (error) { setImgErr((error as Error).message); } finally { setImgBusy(false); }
   }
 
-  return <Card id="ask" title="A mind of its own" className="ask-card" aside={<Icon name="spark" size={18} />}>
+  return <Card id="ask" title="Let it decide" className="ask-card" aside={<Icon name="spark" size={18} />}>
     <div className="decision" data-testid="bean-action" data-source={decision?.source ?? ''}>
       {decision ? <>
         <span className={`source-badge source-${decision.source}`}>{beanSourceLabel(decision)}</span>
         <p className="decision-why">{decision.explanation}</p>
         {!decision.applied && decision.notAppliedReason && <p className="decision-rejected" data-testid="decision-not-applied">{decision.notAppliedReason}</p>}
-      </> : <p className="muted">A snack? A nap? Let {petName} choose what comes next.</p>}
+      </> : <p className="muted">{petName} can choose what to do next based on how hungry, happy and tired it is.</p>}
     </div>
     <button type="button" className="btn btn-secondary ask-button" data-testid="ask-bean" onClick={ask} disabled={!hasPet || thinking}>
       <Icon name="spark" size={17} />{thinking ? `${petName} is thinking…` : `Ask ${petName}`}<Icon name="arrow" size={16} />
     </button>
     <div aria-live="polite">{err && <p className="msg msg-error">{err}</p>}{!err && bean?.lastError && <p className="msg msg-error">{bean.lastError}</p>}</div>
     <details className="customize">
-      <summary><Icon name="portrait" size={17} /><span>A portrait to remember</span><span className="details-plus">+</span></summary>
+      <summary><Icon name="portrait" size={17} /><span>Make a portrait</span><span className="details-plus">+</span></summary>
       {custom && <img src={image!.url} alt={`Generated 2D portrait of ${petName}`} className="bean-thumb" />}
-      <p className="bean-version" data-testid="bean-version">{custom ? 'Generated 2D portrait displayed beside your 3D pet.' : 'Create a 2D portrait to display beside your pet. Your 3D blueprint stays editable.'}</p>
+      <p className="bean-version" data-testid="bean-version">{custom ? 'This generated 2D portrait now stands beside your 3D pet.' : 'This creates a 2D picture to stand beside your pet, and your 3D design stays editable.'}</p>
       <button type="button" className="btn btn-ghost" data-testid="customize-bean" onClick={portrait} disabled={!imageOk || imgBusy || image?.status === 'loading'}>
         <Icon name="portrait" size={17} />{imgBusy || image?.status === 'loading' ? 'Drawing portrait…' : 'Generate portrait'}
       </button>
       <div aria-live="polite">
         {!imageOk && state && <p className="muted small">Portrait generation needs an OPENAI_API_KEY on the server.</p>}
-        {(imgErr || image?.status === 'error') && <p className="msg msg-error">Couldn’t draw a portrait: {imgErr ?? image?.error}. Your 3D pet is still here.</p>}
+        {(imgErr || image?.status === 'error') && <p className="msg msg-error">We couldn't draw a portrait ({imgErr ?? image?.error}), but your 3D pet is still here.</p>}
       </div>
     </details>
   </Card>;

@@ -1,4 +1,4 @@
-/** Bean's mood, derived only from real state. Pure — shared by the 3D scene and the UI. */
+/** Bean's mood, derived only from real state. Pure, shared by the 3D scene and the UI. */
 import type { PublicState } from '../../shared/types';
 
 export type BeanMood = 'sleepy' | 'calm' | 'busy' | 'worried' | 'thinking' | 'proud';

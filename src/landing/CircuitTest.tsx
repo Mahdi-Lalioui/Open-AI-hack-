@@ -24,7 +24,8 @@ export function CircuitTest() {
           </p>
         </div>
 
-        <div className={`lp-bench ${result.ledOn ? 'is-on' : ''}`} data-rv>
+        <div data-rv>
+        <div className={`lp-bench ${result.ledOn ? 'is-on' : ''}`}>
           <svg viewBox="0 0 700 380" role="img" aria-label={`Series circuit with a ${valueOf('battery')} volt battery, a switch, a ${valueOf('resistor')} ohm resistor and an LED. ${result.message}`}>
             <path className="lp-wire" d={LOOP} />
             {closed && <path className="lp-current" d="M90 190 V70 H380 M480 70 H610 V150 M610 230 V310 H90 V230" />}
@@ -60,6 +61,7 @@ export function CircuitTest() {
               {closed ? 'Open the switch' : 'Close the switch'}
             </button>
           </div>
+        </div>
         </div>
       </div>
     </section>

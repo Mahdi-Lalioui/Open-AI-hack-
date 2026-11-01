@@ -73,7 +73,7 @@ export async function saveScreenshot(page: Page, name: string) {
 
 /** Opens a built-in design and its Live test tab, the way a user would. */
 export async function openLiveTest(page: Page, template: 'pixel_pet' | 'led_circuit') {
-  await page.goto('/');
+  await page.goto('/app');
   await page.getByTestId(`template-${template}`).click();
   await page.getByTestId('view-live').click();
   await expect(page.getByTestId('live-cards')).toBeVisible();
@@ -95,7 +95,7 @@ async function decodePngInPage(page: Page, png: Buffer) {
   }, png.toString('base64'));
 }
 
-/** Luminance spread and colour count of an element's pixels — a blank canvas scores ~0. */
+/** Luminance spread and colour count of an element's pixels, a blank canvas scores ~0. */
 export async function pixelStats(page: Page, target: Locator) {
   const png = await target.screenshot();
   const { width, height, data } = await decodePngInPage(page, png);

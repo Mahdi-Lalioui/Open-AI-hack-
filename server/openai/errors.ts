@@ -86,9 +86,9 @@ export const TIMEOUT_ENV_VAR: Record<ApiKind, string> = {
 };
 
 const KIND_LABEL: Record<ApiKind, string> = {
-  vision: 'Sketch reading',
-  decisions: 'Bean decision',
-  image: 'Bean image',
+  vision: 'Design AI',
+  decisions: 'Pet decision',
+  image: 'Pet portrait',
 };
 
 /** Error codes OpenAI uses for exhausted credits / spend limits (do not retry). */
@@ -140,7 +140,7 @@ export function notConfiguredError(kind: ApiKind): OpenAIError {
   return new OpenAIError(
     'not_configured',
     kind,
-    'No OPENAI_API_KEY set — the app is in example mode. Use the built-in example or edit the steps by hand.',
+    'There is no OPENAI_API_KEY on the server, so this needs a built-in example or a change made by hand.',
   );
 }
 

@@ -5,10 +5,22 @@ import { chromium, expect, test } from '@playwright/test';
 import { DEFAULT_PET } from '../../shared/creations';
 import { getState, horizontalOverflow, openLiveTest, pixelStats, post, saveScreenshot, trackErrors } from './helpers';
 
+test('the landing page leads into the app', async ({ page }) => {
+  const errors = trackErrors(page);
+  await page.goto('/');
+  await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+  const overflow = await horizontalOverflow(page);
+  expect(overflow.overflow, overflow.offenders.join(', ')).toBe(false);
+  await page.getByRole('link', { name: /try it out/i }).first().click();
+  await expect(page).toHaveURL(/\/app$/);
+  await expect(page.getByTestId('generate')).toBeVisible();
+  expect(errors, errors.join('\n')).toEqual([]);
+});
+
 test.describe('Design Studio', () => {
   test('example -> 3D -> refine -> undo -> every export downloads a real file', async ({ page }, info) => {
     const errors = trackErrors(page);
-    await page.goto('/');
+    await page.goto('/app');
     await expect(page.getByTestId('ai-pill')).toContainText('No API key');
     await page.getByTestId('template-desk_organiser').click();
 
@@ -39,7 +51,7 @@ test.describe('Design Studio', () => {
   });
 
   test('inspector edits flow through validation', async ({ page }) => {
-    await page.goto('/');
+    await page.goto('/app');
     await page.getByTestId('template-desk_organiser').click();
     await expect(page.getByTestId('dimensions')).toBeVisible();
 
@@ -60,7 +72,7 @@ test.describe('Design Studio', () => {
   });
 
   test('the same design appears as CAD source and as a live web page', async ({ page }, info) => {
-    await page.goto('/');
+    await page.goto('/app');
     await page.getByTestId('template-bedside_table').click();
     await expect(page.getByTestId('dimensions')).toBeVisible();
 
@@ -99,7 +111,7 @@ test.describe('Design Studio', () => {
   });
 
   test('without AI, words use rules and sketches are not faked', async ({ page }) => {
-    await page.goto('/');
+    await page.goto('/app');
     await expect(page.getByTestId('no-ai-note')).toBeVisible();
     await page.getByTestId('sample-sketch').click();
     await page.getByTestId('generate').click();
@@ -112,7 +124,7 @@ test.describe('Design Studio', () => {
   });
 
   test('circuits and the pet export like any other design', async ({ page }) => {
-    await page.goto('/');
+    await page.goto('/app');
     await page.getByTestId('template-pixel_pet').click();
     await expect(page.getByTestId('design-source')).toContainText('no AI');
     const [toy] = await Promise.all([page.waitForEvent('download'), page.getByTestId('export-stl').click()]);
@@ -124,7 +136,7 @@ test.describe('Design Studio', () => {
   });
 
   test('a design saved as a Blueprint opens again, and a bad file changes nothing', async ({ page }) => {
-    await page.goto('/');
+    await page.goto('/app');
     await page.getByTestId('template-led_circuit').click();
     await expect(page.getByTestId('dimensions')).toBeVisible();
     const [file] = await Promise.all([page.waitForEvent('download'), page.getByTestId('export-blueprint').click()]);
@@ -184,7 +196,7 @@ test.describe('Design Studio', () => {
   });
 
   test('draw pad supports strokes, undo, clear and a real PNG download', async ({ page }) => {
-    await page.goto('/');
+    await page.goto('/app');
     const pad = page.getByTestId('sketch-canvas');
     await pad.scrollIntoViewIfNeeded();
     const box = (await pad.boundingBox())!;
@@ -211,7 +223,7 @@ test.describe('Design Studio', () => {
   });
 
   test('fits the screen with no sideways scrolling', async ({ page }) => {
-    await page.goto('/');
+    await page.goto('/app');
     expect((await horizontalOverflow(page)).overflow).toBe(false);
     await page.getByTestId('template-electronics_case').click();
     await expect(page.getByTestId('dimensions')).toBeVisible();
@@ -230,7 +242,7 @@ test.describe('Design Studio', () => {
         return (orig as any).call(this, type, ...rest);
       };
     });
-    await page.goto('/');
+    await page.goto('/app');
     await page.getByTestId('template-planter').click();
     await expect(page.getByTestId('webgl-fallback')).toBeVisible();
     const [download] = await Promise.all([page.waitForEvent('download'), page.getByTestId('export-glb').click()]);
@@ -242,7 +254,7 @@ test.describe('Design Studio', () => {
     const browser = await chromium.launch({ args: ['--disable-webgl', '--disable-3d-apis'] });
     try {
       const page = await browser.newPage({ baseURL: info.project.use.baseURL, viewport: { width: 1365, height: 768 } });
-      await page.goto('/');
+      await page.goto('/app');
       await page.getByTestId('template-desk_organiser').click();
       await expect(page.getByTestId('webgl-fallback')).toBeVisible();
       await expect(page.getByTestId('inspector')).toBeVisible();

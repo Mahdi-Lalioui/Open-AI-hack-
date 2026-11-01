@@ -28,9 +28,9 @@ export function formatDuration(sec: number): string {
   return rest ? `${m} min ${rest} s` : `${m} min`;
 }
 
-/** Average wait metric: null (nothing served yet) → "—". */
+/** Average wait metric: null (nothing served yet) → "-". */
 export function formatAvgWait(sec: number | null): string {
-  return sec === null || !Number.isFinite(sec) ? '—' : formatDuration(sec);
+  return sec === null || !Number.isFinite(sec) ? '-' : formatDuration(sec);
 }
 
 /** 1 → "1st", 2 → "2nd", 11 → "11th", 23 → "23rd". */

@@ -8,7 +8,7 @@ describe('format helpers', () => {
     expect(formatClock(3725)).toBe('1:02:05');
   });
   it('formats avg wait', () => {
-    expect(formatAvgWait(null)).toBe('—');
+    expect(formatAvgWait(null)).toBe('-');
     expect(formatAvgWait(41.6)).toBe('42 s');
     expect(formatAvgWait(65)).toBe('1 min 5 s');
   });

@@ -67,7 +67,7 @@ export function createOpenAIAdapter(config: AppConfig['openai'], deps: OpenAIAda
   const entry = (model: string) => ({
     state: configured ? ('ready' as const) : ('not_configured' as const),
     model,
-    message: configured ? 'Key configured; not called yet.' : 'No OPENAI_API_KEY set — example mode.',
+    message: configured ? 'Key configured; not called yet.' : 'There is no OPENAI_API_KEY on the server, so this is switched off.',
     updatedAt: Date.now(),
   });
 

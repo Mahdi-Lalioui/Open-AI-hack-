@@ -84,7 +84,7 @@ export function parseDecision(response: unknown, facts: QueueFacts): ParsedDecis
 }
 
 // ---------------------------------------------------------------------------
-// Pet decision ("Ask the pet") — same documented request/response shape.
+// Pet decision ("Ask the pet"), same documented request/response shape.
 // ---------------------------------------------------------------------------
 import type { PetActionName } from '../../shared/creations';
 import { type PetFacts, aiPetExplanation, allowedPetActions } from '../beanRules';

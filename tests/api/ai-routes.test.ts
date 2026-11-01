@@ -53,7 +53,7 @@ function routeMock(handler: (url: string) => Promise<Response> | Response) {
   return { fetch, calls };
 }
 
-describe('POST /api/vision/analyze — upload validation', () => {
+describe('POST /api/vision/analyze, upload validation', () => {
   it('415 for unsupported types', async () => {
     const { app } = setup();
     for (const type of ['text/plain', 'image/gif']) {
@@ -88,7 +88,7 @@ describe('POST /api/vision/analyze — upload validation', () => {
   });
 });
 
-describe('POST /api/vision/analyze — mocked OpenAI', () => {
+describe('POST /api/vision/analyze, mocked OpenAI', () => {
   it('pet mode returns a creation and marks vision live', async () => {
     const m = routeMock(() => json(200, { status: 'completed', output: [{ type: 'message', content: [{ type: 'output_text', text: JSON.stringify({ inScope: true, pet: DEFAULT_PET, uncertainties: [] }) }] }] }));
     const { app, session } = setup({ key: true, fetch: m.fetch });
@@ -107,7 +107,7 @@ describe('POST /api/vision/analyze — mocked OpenAI', () => {
   });
 });
 
-describe('POST /api/bean/ask — Ask the pet', () => {
+describe('POST /api/bean/ask, Ask the pet', () => {
   it('example decision without a key, labelled source example, applied to the pet', async () => {
     const { app, session } = setup();
     buildPet(session, 90);
@@ -173,7 +173,7 @@ describe('POST /api/bean/ask — Ask the pet', () => {
   });
 });
 
-describe('POST /api/bean/ask — legacy queue (no pet built)', () => {
+describe('POST /api/bean/ask, legacy queue (no pet built)', () => {
   it('example decision labelled example; AI management off → not applied', async () => {
     const { app, session } = setup();
     busyQueue(session);
@@ -217,7 +217,7 @@ describe('POST /api/bean/ask — legacy queue (no pet built)', () => {
   });
 });
 
-describe('POST /api/bean/image — pet portrait', () => {
+describe('POST /api/bean/image, pet portrait', () => {
   it('503 without a key; 404 for the PNG before generation', async () => {
     const { app } = setup();
     const r = await request(app).post('/api/bean/image');

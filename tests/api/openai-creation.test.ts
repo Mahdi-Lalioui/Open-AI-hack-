@@ -1,4 +1,4 @@
-/** Pivot: pet/circuit vision, pet decisions, pet portrait — mocked fetch only. */
+/** Pivot: pet/circuit vision, pet decisions, pet portrait, mocked fetch only. */
 import { describe, expect, it, vi } from 'vitest';
 import { createOpenAIAdapter, OpenAIError } from '../../server/openai';
 import type { AppConfig } from '../../server/config';

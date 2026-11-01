@@ -98,7 +98,7 @@ test('a circuit value changed in the app reaches the simulation', async ({ page,
 });
 
 test('Live test appears only for designs that do something', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/app');
   await page.getByTestId('template-planter').click();
   await expect(page.getByTestId('view-3d')).toBeEnabled();
   await expect(page.getByTestId('view-live')).toHaveCount(0);

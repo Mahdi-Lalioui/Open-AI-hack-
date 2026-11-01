@@ -130,8 +130,8 @@
 .landing .lp-tape--left { left: 8%; transform: rotate(-3deg); }
 .landing .lp-tape--right { right: 8%; transform: rotate(2.5deg); }
 .landing .lp-sheet-stage { position: relative; height: min(calc(100vh - 256px), 640px); min-height: 330px; overflow: hidden; }
-/* The viewport's camera looks below the model, so the frame sits low and runs past the sheet to centre it. The viewport's background is the sheet's colour, so the offset doesn't show. */
-.landing .lp-frame { position: absolute; inset: 12% 0 auto 0; height: 110%; }
+/* The frame runs past the sheet on both sides, which enlarges the model while keeping it centred. */
+.landing .lp-frame { position: absolute; inset: -12.5% 0 auto 0; height: 125%; }
 .landing .lp-canvas { position: absolute; inset: 0; transition: opacity .45s ease; }
 .landing .lp-canvas.is-hidden { opacity: 0; }
 .landing .lp-canvas * { touch-action: pan-y !important; }
@@ -168,10 +168,10 @@
 .landing .lp-way p { color: var(--vd-chalk-soft); font-size: 16px; }
 .landing .lp-way-art { position: relative; height: 190px; overflow: hidden; border: 1px solid var(--vd-blue-line-strong); border-radius: 2px; }
 .landing .lp-way-paper { background: var(--vd-paper); border: 0; }
-.landing .lp-way-paper .lp-sketch { inset: 7% 0 auto 0; height: 140%; }
+.landing .lp-way-paper .lp-sketch { inset: -20% 0 auto 0; height: 140%; }
 .landing .lp-way-photos { background: var(--vd-blue-deep); }
 .landing .lp-photo { position: absolute; left: 50%; top: 18px; width: 148px; height: 170px; margin-left: -74px; padding: 8px 8px 26px; background: var(--vd-paper); transform: rotate(-4deg); overflow: hidden; box-shadow: 0 10px 24px rgba(0, 0, 0, .35); transition: transform .5s ease; }
-.landing .lp-photo .lp-sketch { inset: 10px 0 auto 0; height: 190px; }
+.landing .lp-photo .lp-sketch { inset: -10px 0 auto 0; height: 190px; }
 .landing .lp-photo--back { transform: rotate(7deg) translateX(14px); background: #dcd5c6; }
 .landing .lp-way:hover .lp-photo:not(.lp-photo--back) { transform: rotate(-1deg) translateY(-6px); }
 .landing .lp-way-type { display: flex; align-items: center; padding: 18px; background: var(--vd-blue-deep); }
@@ -201,7 +201,8 @@
 .landing .lp-tab--fun { flex-grow: 0; padding-left: 20px; border-left: 1px dashed var(--vd-paper-edge); }
 .landing .lp-tab--fun .lp-tab-title { font-size: 16px; color: var(--vd-ink-soft); }
 .landing .lp-example { display: grid; grid-template-columns: minmax(0, 8fr) minmax(280px, 4fr); gap: clamp(20px, 3.5vw, 56px); margin-top: 8px; }
-.landing .lp-example-stage { position: relative; height: clamp(380px, 68vh, 680px); overflow: hidden; }
+.landing .lp-example-stage { position: relative; height: clamp(380px, 72vh, 720px); overflow: hidden; }
+.landing .lp-example-stage .lp-frame { inset: -5% 0 auto 0; height: 110%; }
 .landing .lp-controls { position: absolute; left: 0; bottom: 12px; display: flex; flex-wrap: wrap; gap: 8px; }
 .landing .lp-controls button {
   min-height: 38px; padding: 5px 14px; font-size: 14px; background: rgba(251, 249, 244, .9); border: 1px solid var(--vd-ink); border-radius: 100px; transition: background-color .18s ease, color .18s ease;
@@ -331,10 +332,8 @@
   .landing .lp-ways { grid-template-columns: minmax(0, 1fr); }
   .landing .lp-way-art { height: 170px; }
   .landing .lp-files li { flex-wrap: wrap; }
-  .landing .lp-controls { position: static; margin-top: 8px; }
-  .landing .lp-example-stage { height: auto; overflow: visible; }
-  .landing .lp-example-stage .lp-frame { position: relative; height: 480px; margin-bottom: -150px; }
-  .landing .lp-controls { position: relative; z-index: 2; }
+  .landing .lp-example-stage { height: 470px; }
+  .landing .lp-example-stage .lp-frame { inset: -60px 0 auto 0; height: 460px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
