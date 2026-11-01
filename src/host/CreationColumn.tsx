@@ -1,14 +1,15 @@
 /** Left column: Pet | Circuit mode, sketch upload / example, editor, Build in 3D. */
 import { useEffect, useRef, useState, type ChangeEvent } from 'react';
 import type {
-  BodyShape, CircuitComponent, CircuitSpec, ComponentType, EarStyle, EyeStyle, PetExtra, PetSpec, SketchMode, TailStyle,
+  BodyShape, CircuitComponent, CircuitSpec, ComponentType, CreationConfig, EarStyle, EyeStyle, PetExtra, PetSpec, SketchMode, TailStyle,
 } from '../../shared/creations';
 import { EXAMPLE_LABEL } from '../../shared/example';
 import { ApiClientError } from '../lib/api';
 import { analyzeCreation, buildCreation } from '../lib/creationApi';
 import { checkImageFile } from '../lib/format';
 import { Card } from '../components/Card';
-import { exampleCircuit, examplePet } from './examples';
+import { exampleCircuit, examplePet, PET_STARTERS } from './examples';
+import { SketchPad } from './SketchPad';
 
 type Source = 'example' | 'vision' | 'manual';
 type Read =
@@ -42,9 +43,10 @@ function circuitErrors(c: CircuitSpec): string[] {
   return e;
 }
 
-interface Props { mode: SketchMode; onMode: (m: SketchMode) => void; connected: boolean; reducedMotion: boolean; onBuilt: () => void }
+interface Props { mode: SketchMode; onMode: (m: SketchMode) => void; connected: boolean; reducedMotion: boolean; onBuilt: () => void; creation?: CreationConfig | null; visionReady?: boolean; onBusyChange?: (busy: boolean) => void; externalBusy?: boolean }
 
-export function CreationColumn({ mode, onMode, connected, reducedMotion, onBuilt }: Props) {
+export function CreationColumn({ mode, onMode, connected, reducedMotion, onBuilt, creation, visionReady = true, onBusyChange, externalBusy = false }: Props) {
+  const [inputMethod, setInputMethod] = useState<'draw' | 'upload'>('upload');
   const [preview, setPreview] = useState<{ kind: 'none' } | { kind: 'example' } | { kind: 'upload'; url: string }>({ kind: 'none' });
   const [read, setRead] = useState<Read>({ s: 'idle' });
   const [fileError, setFileError] = useState<string | null>(null);
@@ -52,20 +54,40 @@ export function CreationColumn({ mode, onMode, connected, reducedMotion, onBuilt
   const [circuit, setCircuit] = useState<CircuitSpec>(exampleCircuit);
   const [origin, setOrigin] = useState<Record<SketchMode, Source>>({ pet: 'manual', circuit: 'manual' });
   const [building, setBuilding] = useState(false);
+  const [recognizing, setRecognizing] = useState(false);
   const [stamp, setStamp] = useState(false);
   const [buildMsg, setBuildMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const seq = useRef(0);
   const urlRef = useRef<string | null>(null);
+  const readLock = useRef(false);
+  const buildLock = useRef(false);
 
   useEffect(() => () => { if (urlRef.current) URL.revokeObjectURL(urlRef.current); }, []);
+  useEffect(() => { onBusyChange?.(building || recognizing); }, [building, recognizing, onBusyChange]);
+  useEffect(() => {
+    if (!stamp) return;
+    const timer = setTimeout(() => setStamp(false), 1800);
+    return () => clearTimeout(timer);
+  }, [stamp]);
+
+  // Socket ticks keep the same version. Only a newly confirmed blueprint replaces a draft.
+  useEffect(() => {
+    if (!creation) return;
+    seq.current++;
+    if (creation.pet) setPet(structuredClone(creation.pet));
+    if (creation.circuit) setCircuit(structuredClone(creation.circuit));
+    setOrigin((o) => ({ ...o, [creation.mode]: creation.source }));
+    onMode(creation.mode);
+    setRead({ s: 'idle' });
+  }, [creation?.version]);
 
   const errors = mode === 'pet' ? petErrors(pet) : circuitErrors(circuit);
   const source = origin[mode];
-  const edit = () => setOrigin((o) => ({ ...o, [mode]: 'manual' }));
+  const edit = () => { seq.current++; setStamp(false); setRead({ s: 'idle' }); setBuildMsg(null); setOrigin((o) => ({ ...o, [mode]: 'manual' })); };
   const setUrl = (u: string | null) => { if (urlRef.current) URL.revokeObjectURL(urlRef.current); urlRef.current = u; };
 
   function switchMode(m: SketchMode) {
-    if (m === mode) return;
+    if (m === mode || building || readLock.current || externalBusy) return;
     seq.current++;
     setRead({ s: 'idle' }); setFileError(null); setBuildMsg(null); setUrl(null); setPreview({ kind: 'none' });
     onMode(m);
@@ -75,10 +97,18 @@ export function CreationColumn({ mode, onMode, connected, reducedMotion, onBuilt
     const file = e.target.files?.[0];
     e.target.value = '';
     if (!file) return;
+    await readFile(file);
+  }
+
+  async function readFile(file: File) {
+    if (readLock.current || buildLock.current || externalBusy) return;
     const bad = checkImageFile(file);
     if (bad) { setFileError(bad); return; }
     setFileError(null);
     const u = URL.createObjectURL(file); setUrl(u); setPreview({ kind: 'upload', url: u });
+    if (!visionReady) { setRead({ s: 'not_configured' }); return; }
+    readLock.current = true;
+    setRecognizing(true);
     setRead({ s: 'reading' });
     const my = ++seq.current;
     try {
@@ -93,26 +123,37 @@ export function CreationColumn({ mode, onMode, connected, reducedMotion, onBuilt
       if (my !== seq.current) return;
       if (err instanceof ApiClientError && err.code === 'not_configured') setRead({ s: 'not_configured' });
       else setRead({ s: 'error', message: (err as Error).message });
-    }
+    } finally { readLock.current = false; setRecognizing(false); }
   }
 
   function tryExample() {
-    seq.current++; setUrl(null); setPreview({ kind: 'example' }); setRead({ s: 'idle' }); setFileError(null); setBuildMsg(null);
+    if (building || readLock.current || externalBusy) return;
+    seq.current++; setStamp(false); setUrl(null); setPreview({ kind: 'example' }); setRead({ s: 'idle' }); setFileError(null); setBuildMsg(null);
     if (mode === 'pet') setPet(examplePet()); else setCircuit(exampleCircuit());
     setOrigin((o) => ({ ...o, [mode]: 'example' }));
   }
 
+  function starter(id: string) {
+    if (building || readLock.current || externalBusy) return;
+    const choice = PET_STARTERS.find((p) => p.id === id);
+    if (!choice) return;
+    seq.current++; setStamp(false); setPet(structuredClone(choice.pet)); setRead({ s: 'idle' }); setFileError(null); setBuildMsg(null);
+    setUrl(null); setPreview({ kind: 'none' }); setOrigin((o) => ({ ...o, pet: 'example' }));
+  }
+
   async function build() {
-    if (errors.length || building) return;
-    setBuilding(true); setStamp(true); setBuildMsg(null);
+    if (errors.length || buildLock.current || readLock.current || externalBusy) return;
+    buildLock.current = true;
+    setBuilding(true); setStamp(false); setBuildMsg(null);
     try {
       if (!reducedMotion) await new Promise((r) => setTimeout(r, 600));
       await buildCreation(mode === 'pet' ? { mode, pet, source } : { mode, circuit, source });
+      setStamp(true);
       setBuildMsg({ ok: true, text: 'Built. Watch it rise on the stage.' });
       onBuilt();
     } catch (err) {
       setBuildMsg({ ok: false, text: `${(err as Error).message} The last confirmed creation was kept.` });
-    } finally { setBuilding(false); setStamp(false); }
+    } finally { buildLock.current = false; setBuilding(false); }
   }
 
   const unsure = read.s === 'read' || read.s === 'rejected' ? read.unsure : [];
@@ -122,13 +163,23 @@ export function CreationColumn({ mode, onMode, connected, reducedMotion, onBuilt
       <div className="mode-switch" role="radiogroup" aria-label="What did you draw?" data-testid="mode-switch">
         {(['pet', 'circuit'] as const).map((m) => (
           <label key={m} className={`seg ${mode === m ? 'seg-on' : ''}`}>
-            <input type="radio" name="mode" value={m} checked={mode === m} onChange={() => switchMode(m)} data-testid={`mode-${m}`} />
+            <input type="radio" name="mode" value={m} checked={mode === m} disabled={building || recognizing || externalBusy} onChange={() => switchMode(m)} data-testid={`mode-${m}`} />
             {m === 'pet' ? 'Pet' : 'Circuit'}
           </label>
         ))}
       </div>
 
       <Card id="sketch" title={mode === 'pet' ? 'Pet sketch' : 'Circuit sketch'} className={`sketch-card ${stamp ? 'is-stamping' : ''}`}>
+        {mode === 'pet' && <div className="starter-list" role="group" aria-label="Pet starters">
+          {PET_STARTERS.map((p) => <button type="button" key={p.id} className="starter" disabled={building || recognizing || externalBusy} onClick={() => starter(p.id)} title={p.note} data-testid={`starter-${p.id}`}><span className="starter-swatch" style={{ background: p.pet.bodyColor }} aria-hidden="true" />{p.label}</button>)}
+        </div>}
+        <button type="button" className="btn btn-primary quick-build" data-testid="quick-build" disabled={!connected || building || recognizing || externalBusy || errors.length > 0} onClick={build}>{building ? 'Building…' : mode === 'pet' ? `Bring ${pet.name || 'your pet'} to life` : 'Bring your circuit to life'}</button>
+        <div className="input-tabs" role="group" aria-label="Sketch input">
+          <button type="button" className={`btn btn-ghost btn-small ${inputMethod === 'draw' ? 'is-active' : ''}`} aria-pressed={inputMethod === 'draw'} data-testid="input-draw" onClick={() => setInputMethod('draw')}>Draw</button>
+          <button type="button" className={`btn btn-ghost btn-small ${inputMethod === 'upload' ? 'is-active' : ''}`} aria-pressed={inputMethod === 'upload'} onClick={() => setInputMethod('upload')}>Upload</button>
+        </div>
+        <div hidden={inputMethod !== 'draw'}><SketchPad busy={building || recognizing || externalBusy} onRead={readFile} /></div>
+        {inputMethod === 'upload' && <>
         <div className="sketch-preview" data-testid="sketch-preview">
           {preview.kind === 'none' && <p className="sketch-empty">Photograph your drawing, or try the example.</p>}
           {preview.kind === 'example' && (
@@ -140,11 +191,13 @@ export function CreationColumn({ mode, onMode, connected, reducedMotion, onBuilt
         {preview.kind === 'example' && <p className="example-badge" data-testid="example-badge">{EXAMPLE_LABEL}</p>}
         <div className="button-row">
           <label className="btn btn-secondary file-btn">
-            <input type="file" accept="image/*" capture="environment" data-testid="upload-input" onChange={onFile} className="file-input" />
+            <input type="file" accept="image/png,image/jpeg,image/webp" capture="environment" disabled={building || recognizing || externalBusy} data-testid="upload-input" onChange={onFile} className="file-input" />
             Upload or take photo
           </label>
-          <button type="button" className="btn btn-secondary" data-testid="try-example" onClick={tryExample}>Try example</button>
+          <button type="button" className="btn btn-secondary" data-testid="try-example" disabled={building || recognizing || externalBusy} onClick={tryExample}>Try example</button>
         </div>
+        </>}
+        {!visionReady && <p className="sketch-help">Example mode: try a starter and edit every part below. Photo and drawing interpretation need a server API key.</p>}
         <div aria-live="polite" data-testid="sketch-status">
           {fileError && <p className="msg msg-error">{fileError}</p>}
           {read.s === 'reading' && <p className="msg msg-info">Reading your sketch…</p>}
@@ -160,13 +213,15 @@ export function CreationColumn({ mode, onMode, connected, reducedMotion, onBuilt
 
       <Card id="editor" title={mode === 'pet' ? 'Your pet' : 'Your circuit'}>
         <p className="flow-origin">{source === 'example' ? EXAMPLE_LABEL : source === 'vision' ? 'Read from your sketch' : 'Edited by hand'}</p>
+        <fieldset className="editor-fields" disabled={building || recognizing || externalBusy}>
         {mode === 'pet' ? (
           <PetEditor pet={pet} onChange={(p) => { setPet(p); edit(); }} />
         ) : (
           <CircuitEditor circuit={circuit} onChange={(c) => { setCircuit(c); edit(); }} />
         )}
+        </fieldset>
         {errors.length > 0 && <ul className="field-error">{errors.map((e) => <li key={e}>{e}</li>)}</ul>}
-        <button type="button" className="btn btn-primary btn-build" data-testid="build-world" onClick={build} disabled={!connected || building || errors.length > 0}>
+        <button type="button" className="btn btn-primary btn-build" data-testid="build-world" onClick={build} disabled={!connected || building || recognizing || externalBusy || errors.length > 0}>
           {building ? 'Building…' : 'Build in 3D'}
         </button>
         <div aria-live="polite">{buildMsg && <p className={`msg ${buildMsg.ok ? 'msg-ok' : 'msg-error'}`}>{buildMsg.text}</p>}</div>
@@ -217,7 +272,7 @@ function CircuitEditor({ circuit, onChange }: { circuit: CircuitSpec; onChange: 
   const add = () => {
     let n = circuit.components.length + 1;
     while (circuit.components.some((c) => c.id === `c${n}`)) n++;
-    onChange({ ...circuit, components: [...circuit.components, { id: `c${n}`, type: 'resistor', label: 'Resistor', value: 220, x: 0.5, y: 0.8 }] });
+    onChange({ ...circuit, components: [...circuit.components, { id: `c${n}`, type: 'resistor', label: 'Resistor', value: 470, x: 0.2 + ((n - 1) % 4) * 0.2, y: 0.25 + (Math.floor((n - 1) / 4) % 3) * 0.25 }] });
   };
   const remove = (id: string) => onChange({ components: circuit.components.filter((c) => c.id !== id), wires: circuit.wires.filter((w) => w.from !== id && w.to !== id) });
   const ids = circuit.components.map((c) => c.id);

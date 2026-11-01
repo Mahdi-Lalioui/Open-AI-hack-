@@ -62,6 +62,16 @@ describe('circuit', () => {
     const r = solveCircuit(spec, true);
     expect(r.warnings.join(' ')).toMatch(/No resistor: the LED would burn out/);
   });
+  it.each([1e-320, 1e-304])('rejects numerical overflow for resistance %s without sending null current', (resistance) => {
+    const spec = structuredClone(EXAMPLE_CIRCUIT);
+    spec.components.find((component) => component.type === 'resistor')!.value = resistance;
+    const result = solveCircuit(spec, true);
+    expect(result).toMatchObject({ valid: false, currentMa: 0, ledOn: false, brightness: 0 });
+    expect(result.message).toMatch(/numerical|supported range/i);
+    const transported = JSON.parse(JSON.stringify(result));
+    expect(transported.currentMa).toBe(0);
+    expect(Number.isFinite(transported.currentMa)).toBe(true);
+  });
   it('open loop detected', () => {
     const spec = structuredClone(EXAMPLE_CIRCUIT);
     spec.wires.pop();
@@ -142,5 +152,26 @@ describe('LiveSession creations', () => {
   it('setPetAction', () => {
     s.setPetAction('dance', 'Bean');
     expect(s.getState().pet).toMatchObject({ action: 'dance', lastBy: 'Bean', actionUntil: clock + 3000 });
+  });
+
+  it('pet decisions improve needs with bounded effects', () => {
+    s.buildCreation({ mode: 'pet', pet: EXAMPLE_PET, source: 'example' });
+    s.setPetAction('eat');
+    expect(s.getState().pet!.hunger).toBe(0);
+    s.setPetAction('sleep');
+    expect(s.getState().pet!.energy).toBe(100);
+    s.setPetAction('play');
+    expect(s.getState().pet).toMatchObject({ energy: 90, happiness: 100 });
+    s.setPetAction('dance');
+    expect(s.getState().pet).toMatchObject({ energy: 85, happiness: 100 });
+  });
+
+  it('rebuild clears portrait, decision and errors for the previous creation', () => {
+    s.buildCreation({ mode: 'pet', pet: EXAMPLE_PET, source: 'example' });
+    s.setBeanImage({ status: 'ready', url: '/api/bean/image.png?v=1' });
+    s.setBeanError('Old failure');
+    s.recordBeanDecision({ action: 'dance', source: 'example', explanation: 'Old pet', applied: true, epoch: 0, simTime: 0, wallTime: clock });
+    s.buildCreation({ mode: 'pet', pet: { ...EXAMPLE_PET, name: 'Nova' }, source: 'manual' });
+    expect(s.getState().bean).toMatchObject({ image: { status: 'none' }, lastDecision: null, lastError: null });
   });
 });

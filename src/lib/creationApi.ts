@@ -2,7 +2,7 @@
 import type {
   CircuitResult, CircuitSpec, CreationConfig, InteractionKind, PetSpec, PetState, RecognizedCreation, SketchMode,
 } from '../../shared/creations';
-import { ApiClientError } from './api';
+import { ApiClientError, newOrderId } from './api';
 
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   let res: Response;
@@ -34,7 +34,21 @@ export function buildCreation(input: { mode: SketchMode; pet?: PetSpec; circuit?
   return post<{ ok: true; creation: CreationConfig }>('/api/creation', input);
 }
 
+let clientId: string | null = null;
+const CLIENT_ID_KEY = 'living-paper-client-id';
+
+function browserClientId(): string {
+  if (clientId) return clientId;
+  try {
+    const saved = localStorage.getItem(CLIENT_ID_KEY);
+    if (saved && /^[A-Za-z0-9_-]{8,64}$/.test(saved)) return (clientId = saved);
+  } catch { /* Storage can be unavailable in a private browser or embedded view. */ }
+  clientId = newOrderId();
+  try { localStorage.setItem(CLIENT_ID_KEY, clientId); } catch { /* Keep this page's in-memory identity. */ }
+  return clientId;
+}
+
 export function sendInteraction(input: { id: string; kind: InteractionKind; nickname?: string }) {
-  return post<{ ok: true; duplicate?: boolean }>('/api/interactions', input);
+  return post<{ ok: true; duplicate?: boolean }>('/api/interactions', { ...input, clientId: browserClientId() });
 }
 

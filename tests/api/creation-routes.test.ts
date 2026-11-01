@@ -48,4 +48,38 @@ describe('creation routes', () => {
     expect(none.status).toBe(409);
     expect(none.body.code).toBe('no_creation');
   });
+
+  it('separate guest identities can interact behind one Wi-Fi IP while each stays limited', async () => {
+    await request(app).post('/api/creation').send({ mode: 'pet', pet: EXAMPLE_PET, source: 'example' });
+    const send = (id: string, clientId: string) => request(app).post('/api/interactions')
+      .set('X-Forwarded-For', '203.0.113.5').send({ id, clientId, kind: 'pet' });
+    await send('guest-request-001', 'guest-browser-001').expect(200);
+    await send('guest-request-002', 'guest-browser-002').expect(200);
+    await send('guest-request-003', 'guest-browser-001').expect(429);
+    const retry = await send('guest-request-001', 'guest-browser-001').expect(200);
+    expect(retry.body.duplicate).toBe(true);
+    expect(session.getState().pet!.counts.pet).toBe(2);
+  });
+
+  it('bounds aggregate Wi-Fi traffic even when guest ids change', async () => {
+    await request(app).post('/api/creation').send({ mode: 'pet', pet: EXAMPLE_PET, source: 'example' });
+    let allowed = 0;
+    let limited = 0;
+    for (let n = 0; n < 80; n++) {
+      const r = await request(app).post('/api/interactions').set('X-Forwarded-For', '203.0.113.8')
+        .send({ id: `request-${n.toString().padStart(4, '0')}`, clientId: `browser-${n.toString().padStart(4, '0')}`, kind: 'pet' });
+      if (r.status === 200) allowed++;
+      if (r.status === 429) limited++;
+    }
+    expect(allowed).toBeGreaterThan(30);
+    expect(limited).toBeGreaterThan(0);
+    expect(session.getState().pet!.counts.pet).toBe(allowed);
+  });
+
+  it.each(['x', 'has spaces in it', 'a'.repeat(65)])('rejects invalid client identity %s', async (clientId) => {
+    await request(app).post('/api/creation').send({ mode: 'pet', pet: EXAMPLE_PET, source: 'example' });
+    const r = await request(app).post('/api/interactions').send({ id: 'invalid-client-1', clientId, kind: 'pet' });
+    expect([r.status, r.body.code]).toEqual([400, 'invalid_input']);
+    expect(session.getState().pet!.counts.pet).toBe(0);
+  });
 });

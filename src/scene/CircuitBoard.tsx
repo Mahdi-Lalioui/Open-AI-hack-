@@ -116,8 +116,8 @@ function Led({ c, brightness }: { c: CircuitComponent; brightness: number }) {
   const light = useRef<THREE.PointLight>(null);
   const red = c.type === 'led';
   useFrame((_, dt) => {
-    if (mat.current) mat.current.emissiveIntensity = damp(mat.current.emissiveIntensity, brightness * 4, 6, dt);
-    if (light.current) light.current.intensity = damp(light.current.intensity, brightness * 8, 6, dt);
+    if (mat.current) mat.current.emissiveIntensity = damp(mat.current.emissiveIntensity, brightness * 5, 6, dt);
+    if (light.current) light.current.intensity = damp(light.current.intensity, brightness * 12, 6, dt);
   });
   const glowColor = red ? '#FF4B3A' : '#FFD45A';
   return (
@@ -132,7 +132,7 @@ function Led({ c, brightness }: { c: CircuitComponent; brightness: number }) {
         {red ? <capsuleGeometry args={[0.2, 0.3, 6, 16]} /> : <sphereGeometry args={[0.45, 24, 18]} />}
         <meshStandardMaterial
           ref={mat}
-          color={red ? '#F3A193' : '#FFF5D6'}
+          color={red ? brightness > 0.05 ? '#FFE3B9' : '#A65A4E' : '#FFF5D6'}
           emissive={glowColor}
           emissiveIntensity={0}
           transparent
@@ -141,6 +141,17 @@ function Led({ c, brightness }: { c: CircuitComponent; brightness: number }) {
         />
         <Outlines thickness={0.015} color={INK} />
       </mesh>
+      {/* A small physical glow keeps the on/off state legible without a postprocessing pass. */}
+      {brightness > 0 && <>
+        <mesh position-y={red ? 0.6 : 0.75} raycast={() => null}>
+          <sphereGeometry args={[red ? 0.48 : 0.7, 24, 16]} />
+          <meshBasicMaterial color={glowColor} transparent opacity={brightness * 0.16} depthWrite={false} toneMapped={false} blending={THREE.AdditiveBlending} />
+        </mesh>
+        <mesh rotation-x={-Math.PI / 2} position-y={0.015} raycast={() => null}>
+          <circleGeometry args={[red ? 0.65 : 0.95, 40]} />
+          <meshBasicMaterial color={glowColor} transparent opacity={brightness * 0.18} depthWrite={false} toneMapped={false} />
+        </mesh>
+      </>}
       {!red && (
         <mesh position-y={0.3}>
           <cylinderGeometry args={[0.2, 0.22, 0.2, 16]} />

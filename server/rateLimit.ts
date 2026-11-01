@@ -22,6 +22,12 @@ export const AUDIENCE_ORDER_RULES: RateLimitRule[] = [
   { windowMs: 60_000, max: 12 },
 ];
 
+/** Broad ceiling shared by guest browsers behind one NAT; individual limits still apply. */
+export const AUDIENCE_IP_RULES: RateLimitRule[] = [
+  { windowMs: 10_000, max: 60 },
+  { windowMs: 60_000, max: 300 },
+];
+
 export class SlidingWindowRateLimiter {
   private readonly rules: RateLimitRule[];
   private readonly now: () => number;

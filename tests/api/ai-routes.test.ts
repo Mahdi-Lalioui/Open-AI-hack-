@@ -116,6 +116,7 @@ describe('POST /api/bean/ask — Ask the pet', () => {
     expect(r.body.decision).toMatchObject({ source: 'example', action: 'eat', applied: true });
     expect(r.body.decision.explanation.startsWith('Example action (rule-based, no AI)')).toBe(true);
     expect(session.getState().pet?.action).toBe('eat');
+    expect(session.getState().pet?.hunger).toBeLessThan(70);
     expect(session.getState().bean.thinking).toBe(false);
   });
 
@@ -155,6 +156,20 @@ describe('POST /api/bean/ask — Ask the pet', () => {
     expect(r.body.decision).toMatchObject({ action: 'wave', applied: false });
     expect(r.body.decision.notAppliedReason).toMatch(/rebuilt or reset/);
     expect(session.getState().pet?.action).not.toBe('wave');
+    expect(session.getState().bean.lastDecision).toBeNull();
+  });
+
+  it('an old failed decision cannot set the rebuilt pet error', async () => {
+    const gate = deferred<Response>();
+    const m = routeMock(() => gate.promise);
+    const { app, session } = setup({ key: true, fetch: m.fetch });
+    buildPet(session, 10);
+    const first = request(app).post('/api/bean/ask').then((r) => r);
+    await vi.waitFor(() => expect(m.calls).toHaveLength(1));
+    buildPet(session, 10);
+    gate.resolve(json(400, { error: { message: 'Invalid decision request.' } }));
+    await first;
+    expect(session.getState().bean.lastError).toBeNull();
   });
 });
 
@@ -234,5 +249,60 @@ describe('POST /api/bean/image — pet portrait', () => {
     expect(r.status).toBe(502);
     expect(m.calls).toHaveLength(1);
     expect(session.getState().bean.image.status).toBe('error');
+  });
+
+  it('discards a portrait completed after the pet was rebuilt', async () => {
+    const gate = deferred<Response>();
+    let calls = 0;
+    const m = routeMock(() => calls++ === 0 ? gate.promise : json(200, { data: [{ b64_json: PNG.toString('base64') }] }));
+    const { app, session } = setup({ key: true, fetch: m.fetch });
+    buildPet(session);
+    const first = request(app).post('/api/bean/image').then((r) => r);
+    await vi.waitFor(() => expect(m.calls).toHaveLength(1));
+    session.buildCreation({ mode: 'pet', pet: { ...DEFAULT_PET, name: 'Nova', bodyColor: '#AA33DD' }, source: 'manual' });
+    gate.resolve(json(200, { data: [{ b64_json: PNG.toString('base64') }] }));
+    const stale = await first;
+    expect([stale.status, stale.body.code]).toEqual([409, 'stale_creation']);
+    expect(session.getState().bean.image.status).toBe('none');
+    expect((await request(app).get('/api/bean/image.png')).status).toBe(404);
+    await request(app).post('/api/bean/image').expect(200);
+    expect(m.calls).toHaveLength(2);
+  });
+
+  it('does not put an old portrait failure on a rebuilt pet', async () => {
+    const gate = deferred<Response>();
+    const m = routeMock(() => gate.promise);
+    const { app, session } = setup({ key: true, fetch: m.fetch });
+    buildPet(session);
+    const first = request(app).post('/api/bean/image').then((r) => r);
+    await vi.waitFor(() => expect(m.calls).toHaveLength(1));
+    buildPet(session);
+    gate.resolve(json(400, { error: { message: 'Invalid image request.' } }));
+    await first;
+    expect(session.getState().bean.image.status).toBe('none');
+  });
+
+  it('reset during portrait generation discards the result and clears loading', async () => {
+    const gate = deferred<Response>();
+    const m = routeMock(() => gate.promise);
+    const { app, session } = setup({ key: true, fetch: m.fetch });
+    buildPet(session);
+    const first = request(app).post('/api/bean/image').then((r) => r);
+    await vi.waitFor(() => expect(m.calls).toHaveLength(1));
+    session.reset();
+    gate.resolve(json(200, { data: [{ b64_json: PNG.toString('base64') }] }));
+    const stale = await first;
+    expect([stale.status, stale.body.code]).toEqual([409, 'stale_creation']);
+    expect(session.getState().bean.image.status).toBe('none');
+  });
+
+  it('hides the previous cached portrait after a different pet is built', async () => {
+    const m = routeMock(() => json(200, { data: [{ b64_json: PNG.toString('base64') }] }));
+    const { app, session } = setup({ key: true, fetch: m.fetch });
+    buildPet(session);
+    await request(app).post('/api/bean/image').expect(200);
+    session.buildCreation({ mode: 'pet', pet: { ...DEFAULT_PET, name: 'Nova' }, source: 'manual' });
+    expect(session.getState().bean.image.status).toBe('none');
+    await request(app).get('/api/bean/image.png?v=1').expect(404);
   });
 });

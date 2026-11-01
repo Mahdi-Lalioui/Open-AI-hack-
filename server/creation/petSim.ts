@@ -31,6 +31,23 @@ export function setAction(p: PetState, name: PetActionName, durationMs: number, 
   return { ...p, counts: { ...p.counts }, action: name, actionUntil: name === 'idle' ? 0 : nowWall + Math.max(0, durationMs) };
 }
 
+/** Decision effects are app-owned, bounded, and do not count as guest interactions. */
+export function applyPetAction(p: PetState, name: PetActionName, durationMs: number, nowWall: number): PetState {
+  const next = setAction(p, name, durationMs, nowWall);
+  if (name === 'eat') next.hunger = clamp(next.hunger - 25);
+  if (name === 'sleep') next.energy = clamp(next.energy + 30);
+  if (name === 'play') {
+    next.happiness = clamp(next.happiness + 20);
+    next.energy = clamp(next.energy - 10);
+  }
+  if (name === 'dance') {
+    next.happiness = clamp(next.happiness + 8);
+    next.energy = clamp(next.energy - 5);
+  }
+  if (name === 'wave') next.happiness = clamp(next.happiness + 5);
+  return next;
+}
+
 const ACTION_FOR: Record<'feed' | 'pet' | 'play', PetActionName> = { feed: 'eat', pet: 'wave', play: 'play' };
 export const INTERACTION_ACTION_MS = 2500;
 

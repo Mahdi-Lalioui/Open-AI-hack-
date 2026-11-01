@@ -61,9 +61,21 @@ export function solveCircuit(spec: CircuitSpec, switchClosed: boolean): CircuitR
     return { ...base, valid: true, closedLoop: true, currentMa: 1000, ledOn: leds.length > 0, brightness: 1, message: 'Short circuit: current is limited only by the battery.', warnings };
   }
   const currentMa = ((V - Vf) / R) * 1000;
-  if (leds.length && currentMa > LED_MAX_SAFE_MA) warnings.push(`${r1(currentMa)} mA is above a typical LED's ${LED_MAX_SAFE_MA} mA: it would burn out.`);
+  const roundedCurrentMa = r1(currentMa);
+  // Finite inputs can still overflow division or decimal rounding. JSON would turn
+  // Infinity into null, so reject the calculation before it reaches either client.
+  if (!Number.isFinite(roundedCurrentMa)) {
+    return {
+      ...base,
+      valid: false,
+      closedLoop: true,
+      message: 'Circuit values exceed the supported numerical range. No current is simulated.',
+      warnings: ['Use less extreme component values, then rebuild the circuit.'],
+    };
+  }
+  if (leds.length && currentMa > LED_MAX_SAFE_MA) warnings.push(`${roundedCurrentMa} mA is above a typical LED's ${LED_MAX_SAFE_MA} mA: it would burn out.`);
   const ledOn = leds.length > 0 && currentMa > LED_ON_MA;
   const brightness = Math.min(1, Math.max(0, currentMa / FULL_BRIGHT_MA));
   const what = leds.length ? `LED ${ledOn ? 'on' : 'off'}` : bulbs.length ? 'Bulb lit' : 'Current';
-  return { valid: true, closedLoop: true, switchClosed, currentMa: r1(currentMa), ledOn, brightness, message: `${what}: ${r1(currentMa)} mA through ${R} Ω`, warnings };
+  return { valid: true, closedLoop: true, switchClosed, currentMa: roundedCurrentMa, ledOn, brightness, message: `${what}: ${roundedCurrentMa} mA through ${R} Ω`, warnings };
 }

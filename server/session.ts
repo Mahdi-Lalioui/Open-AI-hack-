@@ -32,10 +32,10 @@ import { addOrderSchema, buildWorldSchema, checkChain } from '../shared/validati
 import type { AddWorkerResult, LiveSessionApi, LiveSessionOptions } from './types';
 import * as engine from './sim/engine';
 import type { CircuitResult, CreationConfig, InteractionKind, PetActionName, PetState } from '../shared/creations';
-import { applyInteraction, createPetState, decayPet, setAction } from './creation/petSim';
+import { applyInteraction, applyPetAction, createPetState, decayPet } from './creation/petSim';
 import { solveCircuit } from './creation/circuit';
 import { buildCreationSchema, interactionSchema, type BuildCreationInput, type InteractionInput } from './creation/schemas';
-import { AUDIENCE_ORDER_RULES, SlidingWindowRateLimiter, type RateLimitRule } from './rateLimit';
+import { AUDIENCE_IP_RULES, AUDIENCE_ORDER_RULES, SlidingWindowRateLimiter, type RateLimitRule } from './rateLimit';
 
 export const STALE_EPOCH_REASON = 'Session was reset; stale action ignored.';
 export const WORKER_CAP_REASON = 'Both workers are already on shift.';
@@ -115,6 +115,7 @@ export class LiveSession implements LiveSessionApi {
   /** Order ids seen in any epoch (bounded, oldest evicted first) -> last known copy. */
   private seenOrders = new Map<string, Order>();
   private readonly audienceLimiter: SlidingWindowRateLimiter;
+  private readonly audienceIpLimiter: SlidingWindowRateLimiter;
 
   constructor(opts: LiveSessionOptions & LiveSessionExtraOptions) {
     this.publicBaseUrl = opts.publicBaseUrl;
@@ -130,6 +131,7 @@ export class LiveSession implements LiveSessionApi {
       rules: opts.audienceRateRules ?? AUDIENCE_ORDER_RULES,
       now: this.now,
     });
+    this.audienceIpLimiter = new SlidingWindowRateLimiter({ rules: AUDIENCE_IP_RULES, now: this.now });
   }
 
   // -------------------------------------------------------------------------
@@ -310,6 +312,10 @@ export class LiveSession implements LiveSessionApi {
     };
     this.creation = creation;
     this.pet = createPetState();
+    this.lastPetWall = this.now();
+    this.bean.image = { status: 'none' };
+    this.bean.lastDecision = null;
+    this.bean.lastError = null;
     this.circuitSwitch = false;
     this.circuitResult = creation.circuit ? solveCircuit(creation.circuit, false) : null;
     this.syncTimer();
@@ -321,16 +327,24 @@ export class LiveSession implements LiveSessionApi {
   interact(input: InteractionInput, meta: { ip?: string } = {}): InteractionResult | ApiError {
     const parsed = interactionSchema.safeParse(input);
     if (!parsed.success) return apiError('invalid_input', parsed.error.issues[0]?.message ?? 'Invalid interaction.');
-    const { id, kind, nickname } = parsed.data;
+    const { id, kind, nickname, clientId } = parsed.data;
     if (this.seenInteractions.has(id)) return { ok: true, duplicate: true, kind, ...this.creationView() };
     if (!this.creation) return apiError('no_creation', 'Nothing has been built yet.');
     if (kind === 'toggle_switch' ? this.creation.mode !== 'circuit' : this.creation.mode !== 'pet') {
       return apiError('wrong_mode', kind === 'toggle_switch' ? 'There is no circuit to switch.' : 'There is no pet to interact with.');
     }
-    const rl = this.audienceLimiter.consume(meta.ip || 'unknown');
+    const ip = meta.ip || 'unknown';
+    const guestKey = clientId ? `client:${clientId}` : `ip:${ip}`;
+    const rl = this.audienceLimiter.check(guestKey);
     if (!rl.ok) {
       return apiError('rate_limited', `Easy there! Try again in ${Math.max(1, Math.ceil(rl.retryAfterMs / 1000))} s.`);
     }
+    const aggregate = this.audienceIpLimiter.check(ip);
+    if (!aggregate.ok) {
+      return apiError('rate_limited', `The audience is busy! Try again in ${Math.max(1, Math.ceil(aggregate.retryAfterMs / 1000))} s.`);
+    }
+    this.audienceLimiter.consume(guestKey);
+    this.audienceIpLimiter.consume(ip);
     this.seenInteractions.add(id);
     while (this.seenInteractions.size > this.seenLimit) {
       const oldest = this.seenInteractions.values().next().value;
@@ -348,7 +362,7 @@ export class LiveSession implements LiveSessionApi {
   }
 
   setPetAction(action: PetActionName, by?: string | null, durationMs = 3000): void {
-    this.pet = setAction(this.pet, action, durationMs, this.now());
+    this.pet = applyPetAction(this.pet, action, durationMs, this.now());
     if (by) this.pet.lastBy = by;
     this.notify();
   }

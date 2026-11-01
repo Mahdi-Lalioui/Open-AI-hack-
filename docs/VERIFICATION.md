@@ -1,45 +1,42 @@
-# Verification
+# Verification — 2026-11-01
 
-Run on 2026-11-01 in example mode (no OpenAI key).
+Verified locally in example mode. No live OpenAI request was made from this checkout; the user selected example mode and the teammate's credentialed environment is separate.
 
-## Results
-| Command | Result |
+## Final results
+
+| Check | Actual result |
 | --- | --- |
-| `npx vitest run` | 12 files, 185 tests passed |
-| `npx playwright test` | 19 passed, 2 skipped (keyboard-Tab and second-browser WebGL launch are desktop only), 4.5 min |
-| `npm run build` | typecheck and vite build OK. One JS chunk is 1.19 MB (336 kB gzip). |
+| `npm ci --no-audit --no-fund` | Locked dependencies installed successfully |
+| `npm test` | 15 files, **207 tests passed**, zero failures |
+| `npm run build` | TypeScript and production Vite build passed |
+| `npx playwright test` | **35 passed, 2 expected mobile skips**, zero failures, 1.4 minutes |
+| Production browser smoke | Health, built UI, starter build, guest-to-host WebSocket feed, example decision, presentation, screenshots and no page errors passed |
+| `git diff --check` | Passed |
+| Independent source review | No material findings; numerical solver edge case separately fixed with failing-then-passing regressions |
 
-Some Playwright runs failed during development because other agents' edits killed or reloaded the dev server on 4599 (ECONNREFUSED, HMR reloads). The suite passes on a quiet tree.
+There is no lint script in this repository. The build runs the configured TypeScript check. CI has been configured but remote CI results are separate from these local results.
 
-## What the tests cover
-- `tests/api/realtime.test.ts`: a real HTTP and Socket.IO server with two clients.
-  - Both clients get identical state after a guest order.
-  - Adding a worker shows 2 on both clients. The worker cap is enforced.
-  - A reset reaches both clients (epoch goes up by 1).
-  - Clients that disconnect and reconnect five times get the current state, add no duplicate orders and start no second timer. Measured: about 10 simulated seconds per real second before and after.
-  - Re-POSTing the same order id does not create a duplicate.
-  - These tests cover the old queue API, which is still on the server.
-- `tests/e2e/host-guest.spec.ts`:
-  - Pet example → Build in 3D → guest Feed. Hunger goes down and "Fed N" goes up on the host, and the guest's live line updates. Reloading the guest page does not resend.
-  - Circuit example → guest Flip switch. The host shows LED On and a current above 0 mA.
-  - API badges show "Not configured" and the example is labelled.
-- `tests/e2e/layout.spec.ts`, at 1365×768 and 390×844:
-  - No horizontal overflow on the host page or `/join`.
-  - The pet need bars use fonts of at least 12 px. The guest buttons use at least 14 px and are at least 40 px tall.
-  - QR code: the module grid of the `<img>` data URL matches the `qrcode` symbol for the exact `guest-url` text, with 0 module mismatches. Its alt text contains the URL.
-  - Tab reaches try-example, upload and Build world, and each shows a visible outline or box-shadow.
-  - Reduced motion loads with no errors.
-  - Camera buttons (Reset view, Zoom in/out, Rotate left/right) work with no errors.
-  - WebGL fallback: forcing `getContext` to return null, and launching chromium with `--disable-webgl`, both show `webgl-fallback`, and the page still works.
-- 3D rendered for real, not a blank canvas. Canvas pixels have luminance std about 32 and about 190–200 distinct colours on both sizes.
+## Exercised behavior
 
-## Visual review (`test-results/screens/`)
-- Host pet page: a clean three-column paper look. The teal pet has ears, eyes, legs and a name tag on a gridded paper sheet. The needs bars, QR code, localhost warning and AI badges all read well.
-- Circuit page: the 3D board shows the battery, switch, resistor and LED with labels and an "LED on: 31.8 mA through 220 Ω" banner. Nit: the 3D LED looks pale or unlit even though the readout says On.
-- Guest on mobile: large Feed, Pet and Play buttons with a clear live line.
+- Desktop 1365×768 and mobile 390×844 layouts, readable metrics, touch controls, keyboard focus, reduced motion and usable WebGL fallback.
+- Real 3D canvas pixels have a nonzero luminance spread and hundreds of distinct sampled colors; the canvas is not blank.
+- Pet and circuit host/guest flows, host Feed/Pet/Play, phone interactions, reconnection, idempotent retries, shared-IP audience identities and bounded rate limits.
+- Presentation mode and Escape restore the studio, with example mode visibly labelled.
+- Editor hydration after reload preserves custom parts; same-version socket updates preserve local drafts.
+- Drawing produces actual ink pixels. Switching input tabs preserves strokes. Undo/clear and a real PNG download work; downloaded bytes have a PNG signature and 560×360 dimensions.
+- Downloaded JSON parses and contains the confirmed specification. Valid pet/circuit files round trip through shared validation; invalid/versioned/oversized imports are rejected without replacing the confirmed creation.
+- Imports wait for pending builds. Recognition is serialized and stale results cannot replace newer edits.
+- Portraits and decisions cannot attach to a rebuilt/reset pet. Rebuild clears creation-specific results. Pet decisions have bounded effects on needs.
+- Circuit examples use 470 Ω at 9 V. Extremely small resistance values return an invalid, finite result instead of Infinity/null that could crash the UI.
 
-## Bugs and observations for routing
-1. The circuit example (`src/host/examples.ts:10`) uses 220 Ω at 9 V. That gives 31.8 mA, so the demo shows the warning "31.8 mA is above a typical LED's 30 mA: it would burn out". Use 470 Ω (about 14.9 mA) for a clean demo.
-2. The 3D LED does not look lit when `ledOn` is true (`src/scene/CircuitBoard.tsx`, visual only).
-3. Earlier type drift on `PublicState.circuit` is fixed: the host now reads `state.circuit.result`.
-4. The engine and session reviews against the queue spec found no defects. The 5-minute checks (10/6/3/1, average wait 50; and 10/9/0/1, average wait 0) are covered by `tests/unit/engine.test.ts`. That queue code is now legacy.
+The two skips are mobile keyboard-Tab navigation and a second browser launch with WebGL disabled; their equivalent desktop checks passed. No other checks were skipped.
+
+## Visual and production review
+
+Reviewed desktop studio, presentation mode, phone controls, circuit/LED and WebGL fallback screenshots. Production smoke used `npm start` on port 5173 with an independent phone browser context. Local screenshots were saved for the submitting team.
+
+## Remaining boundaries
+
+Supported interpretations are preset **pets and simple series circuits**, not arbitrary drawings or free-form meshes. JSON blueprints and sketch PNGs are real exports; CAD/STL/GLB exports are not implemented. The single server's state remains in memory and host controls are not authenticated. Restarting clears the session.
+
+Live vision, AI decisions and portraits still require a successful `npm run smoke:live` on the teammate's configured machine. Vercel hosting is not verified: see [DEPLOYMENT.md](DEPLOYMENT.md) for the shared-state requirement. The local production demo is verified; a hosted URL, video, team metadata and event-specific disclosures must be supplied by the team before submission.

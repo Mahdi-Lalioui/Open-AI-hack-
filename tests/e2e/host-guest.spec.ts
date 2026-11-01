@@ -15,9 +15,12 @@ const num = async (page: Page, id: string) => Number(await page.getByTestId(id).
 
 async function buildExample(page: Page, mode: 'pet' | 'circuit') {
   await page.goto('/');
-  if (mode === 'circuit') await page.getByTestId('mode-circuit').check();
+  await page.getByTestId(`mode-${mode}`).check();
   await page.getByTestId('try-example').click();
-  await page.getByTestId('build-world').click();
+  await Promise.all([
+    page.waitForResponse((response) => new URL(response.url()).pathname === '/api/creation' && response.request().method() === 'POST' && response.status() === 200),
+    page.getByTestId('build-world').click(),
+  ]);
   await expect(page.getByTestId('world-canvas')).toBeVisible();
 }
 

@@ -250,6 +250,10 @@ export function createAiRouter(session: LiveSessionApi, openai: OpenAIAdapter): 
     if (!st.pet) return sendError(res, 409, 'no_pet', 'Build a pet first.');
     const facts = petFacts(st.pet, spec);
     const version = st.creation?.version;
+    const isCurrentPet = () => {
+      const now = session.getState();
+      return now.sim.epoch === epoch && now.creation?.mode === 'pet' && now.creation.version === version;
+    };
     askBusy = true;
     session.setBeanThinking(true);
     try {
@@ -267,11 +271,11 @@ export function createAiRouter(session: LiveSessionApi, openai: OpenAIAdapter): 
           ({ action, explanation, model } = ai);
           source = 'ai';
           setStatus('decisions', 'live', 'Last decision succeeded.');
-          session.setBeanError(null);
+          if (isCurrentPet()) session.setBeanError(null);
         } catch (err) {
           const message = errorMessage(err);
           setStatus('decisions', 'unavailable', message);
-          session.setBeanError(message);
+          if (isCurrentPet()) session.setBeanError(message);
           return sendOpenAIError(res, err);
         }
       }
@@ -296,8 +300,7 @@ export function createAiRouter(session: LiveSessionApi, openai: OpenAIAdapter): 
         epoch,
         ...(model ? { model } : {}),
       };
-      // BeanDecision.action is typed for the retired café actions; contract change reported to the lead.
-      session.recordBeanDecision(decision as unknown as BeanDecision);
+      if (isCurrentPet()) session.recordBeanDecision(decision);
       res.json({ ok: true, decision });
     } catch (err) {
       sendOpenAIError(res, err);
@@ -328,22 +331,37 @@ export function createAiRouter(session: LiveSessionApi, openai: OpenAIAdapter): 
 
     imageBusy = true;
     const model = openai.models.image;
+    const target = session.getState();
+    const targetKey = imageKey();
+    const isCurrentTarget = () => {
+      const now = session.getState();
+      return now.sim.epoch === target.sim.epoch && now.creation?.version === target.creation?.version && imageKey() === targetKey;
+    };
+    const clearStaleLoading = () => {
+      if (session.getState().bean.image.status === 'loading') session.setBeanImage({ status: 'none' });
+    };
     session.setBeanImage({ status: 'loading', model });
-    setStatus('image', 'waiting', 'Drawing Bean…');
+    setStatus('image', 'waiting', 'Drawing a portrait…');
     try {
-      const st = session.getState();
       const result =
-        st.creation?.mode === 'pet' ? await openai.generatePetImage(st.creation.pet ?? DEFAULT_PET) : await openai.generateBeanImage();
+        target.creation?.mode === 'pet' ? await openai.generatePetImage(target.creation.pet ?? DEFAULT_PET) : await openai.generateBeanImage();
+      if (!isCurrentTarget()) {
+        clearStaleLoading();
+        setStatus('image', 'live', 'Portrait generated for an earlier creation; result discarded.');
+        sendError(res, 409, 'stale_creation', 'The creation was rebuilt or reset while its portrait was drawing. Generate a portrait for the current creation.');
+        return;
+      }
       imageVersion += 1;
-      beanImage = { png: result.png, version: imageVersion, model: result.model, key: imageKey() };
+      beanImage = { png: result.png, version: imageVersion, model: result.model, key: targetKey };
       const image: BeanImageState = { status: 'ready', url: `/api/bean/image.png?v=${imageVersion}`, model: result.model };
       // Note for UI: this is a 2D portrait/texture of the pet, not a 3D model.
       session.setBeanImage(image);
-      setStatus('image', 'live', 'Bean image generated.');
+      setStatus('image', 'live', 'Portrait generated.');
       res.json({ ok: true, image });
     } catch (err) {
       const message = errorMessage(err);
-      session.setBeanImage({ status: 'error', error: message, model });
+      if (isCurrentTarget()) session.setBeanImage({ status: 'error', error: message, model });
+      else clearStaleLoading();
       setStatus('image', 'unavailable', message);
       sendOpenAIError(res, err);
     } finally {
@@ -352,7 +370,8 @@ export function createAiRouter(session: LiveSessionApi, openai: OpenAIAdapter): 
   });
 
   router.get('/bean/image.png', (_req: Request, res: Response) => {
-    if (!beanImage) {
+    const currentImage = session.getState().bean.image;
+    if (!beanImage || beanImage.key !== imageKey() || currentImage.status !== 'ready') {
       sendError(res, 404, 'not_found', 'No Bean image has been generated yet.');
       return;
     }

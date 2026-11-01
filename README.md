@@ -1,310 +1,151 @@
-# VDraw — From imagination to implementation
-
-**Sketch it. Describe it. Bring it to life.**
-
-VDraw is a multimodal AI creation studio that transforms rough sketches, reference images and natural-language descriptions into editable digital creations.
-
-Instead of requiring users to learn multiple specialist tools, our platform interprets their ideas and turns them into structured designs that can be previewed, customised and exported into different formats.
-
-**One idea. Multiple outputs. Real, usable creations.**
-
-## 1. Overview
-
-### The problem
-
-Turning an idea into a usable digital or physical design often requires knowledge of several specialist tools, including CAD software, 3D modelling applications, animation tools and frontend development environments.
-
-This creates a barrier between having an idea and actually building it.
-
-### Our solution
-
-We provide a single workspace where users can sketch, describe or upload an idea and transform it into a structured, editable design.
-
-A central AI-generated Design Blueprint acts as the source of truth for the different outputs, allowing one idea to be transformed into multiple formats.
-
-### Who is it for?
-
-- Designers and product prototypers.
-- Makers and hobbyists.
-- Indie game developers and 3D artists.
-- Frontend developers and UI designers.
-- Anyone who wants to turn an idea into something tangible without mastering specialist software.
-
-## 2. Core user journey
-
-1. **Input:** Draw a sketch, upload a reference image or describe an idea.
-2. **Interpret:** AI analyses the input and extracts the intended design, components, dimensions and style.
-3. **Generate:** The system converts the interpretation into a structured Design Blueprint.
-4. **Visualise:** An interactive 3D model is generated for inspection and customisation.
-5. **Refine:** Users request changes using natural language or design controls.
-6. **Export:** The design can be exported into supported, usable formats.
-
-## 3. Features and supported outputs
-
-| Capability | Description | Status |
-|---|---|---|
-| Sketch interpretation | Understand rough drawings and design intent | [Update] |
-| Image and text input | Combine visual references and descriptions | [Update] |
-| Design Blueprint | Convert ideas into structured design specifications | [Update] |
-| Interactive 3D preview | View, rotate and inspect generated objects | [Update] |
-| Design refinement | Change dimensions, components and materials | [Update] |
-| CAD export | Generate editable parametric CAD source | [Update] |
-| 3D export | Download generated models | [Update] |
-| Web component generation | Create components and interactive product previews | [Update] |
-| Animation | Add motion to generated objects | [Update] |
-
-Only mark features as complete once they work in the actual application.
-
-## 4. Backend architecture and APIs
-
-### Architecture overview
-
-The platform uses a shared Design Blueprint to connect multimodal AI interpretation with deterministic rendering and export systems.
-
-```text
-User Input
-  ├── Sketch / Canvas
-  ├── Reference Image
-  └── Text / Voice
-         |
-         v
-Backend API
-         |
-         v
-OpenAI Responses API
-         |
-         v
-Structured Design Blueprint
-         |
-         v
-Validation and Normalisation
-         |
-         +----------+----------+----------+
-         |          |          |          |
-         v          v          v          v
-        3D         CAD        Web      Animation
-      Renderer   Exporter   Exporter   Renderer
-         |          |          |          |
-         +----------+----------+----------+
-                    |
-                    v
-              User Outputs
-```
-
-### AI integration
-
-- **OpenAI Responses API:** Multimodal interpretation of sketches, images and natural-language descriptions.
-- **Structured Outputs:** Constrained generation of the Design Blueprint.
-- **Image generation (optional):** Concept imagery and visual presentation assets.
-- **Audio transcription (optional):** Voice-based design instructions.
-
-### Design Blueprint
-
-The Design Blueprint is the common representation of a user's design.
-
-It should capture:
-
-- Object name and description.
-- Dimensions and units.
-- Components and their relationships.
-- Geometric primitives and parameters.
-- Position and rotation.
-- Materials, colours and visual style.
-- Optional animation and interaction settings.
-
-All renderers and exporters should consume this shared representation rather than independently interpreting the original prompt.
-
-### Backend endpoints
-
-Document the actual routes implemented in the repository. Suggested responsibilities:
-
-| Endpoint | Responsibility |
-|---|---|
-| `POST /api/design/interpret` | Interpret user input and return a Design Blueprint |
-| `POST /api/design/refine` | Apply requested changes to an existing design |
-| `POST /api/design/export` | Generate the requested output format |
-| `GET /api/design/:id` | Retrieve a saved design |
-
-## 5. Frontend and UI/UX
-
-The application is designed as a creative workspace rather than a conventional chatbot.
-
-### Main interface
-
-- **Input panel:** Sketch canvas, image uploads and natural-language instructions.
-- **Creation viewport:** Large interactive 3D preview.
-- **Design inspector:** Components, dimensions, materials and adjustable parameters.
-- **Refinement interface:** Natural-language instructions for modifying the current design.
-- **Export panel:** Available downloadable formats.
-
-### UX principles
-
-- Visual-first interaction.
-- Minimal learning curve.
-- Immediate visual feedback.
-- Editable outputs rather than static AI-generated images.
-- One consistent design across all output formats.
-
-## 6. Demo
-
-### The scenario
-
-A user wants to create a modular desk organiser but has no CAD or 3D modelling experience.
-
-They sketch their idea, describe the intended functionality, and let the application generate an editable design.
-
-The demonstration shows:
-
-1. A rough sketch and natural-language description.
-2. AI interpretation into a Design Blueprint.
-3. The generated interactive 3D model.
-4. A natural-language refinement.
-5. A downloadable design file.
-6. The same design represented in another output format.
-
-**The takeaway: one rough idea becomes something you can actually use.**
-
-## 7. Use of Codex
-
-Codex was used throughout the hackathon as a development agent.
-
-Document concrete examples of its contribution, including:
-
-- The tasks it completed.
-- The files or components it helped implement.
-- The tests it ran.
-- A specific bug or engineering challenge it helped solve.
-
-Include evidence where possible, such as screenshots, example prompts or links to relevant commits.
-
-## 8. Running the project
-
-Document the actual prerequisites, installation commands and development scripts here.
-
-### Environment variables
-
-List required environment variables without including their values or actual API keys.
-
-### Local development
-
-Provide instructions for installing dependencies, configuring the environment and starting the application.
-
-## 9. Credits and acknowledgements
-
-Identify external libraries, APIs, templates, assets and existing code used in the project.
-
-Clearly distinguish these from the functionality developed by the team during the hackathon.
-
-## 10. Future direction
-
-Potential extensions include game and AR assets, animation exports, interior design, furniture prototyping, laser-cut fabrication and additional frontend output formats.
-
----
-
-# Running the MVP (Living Paper build)
+# Living Paper
 
 **Turn a sketch into a world you can test.**
 
-Draw a **pet** or a simple **circuit** on paper, photograph it, and Living Paper reads the
-drawing into structured parts and builds a live, interactive 3D version on a "paper theatre"
-stage. The audience scans a QR code and plays with it from their phones: feed / pet / play
-with the pet, or flip the circuit's switch and watch the LED light up with a real current
-calculation.
+Living Paper is a small creation studio for editable virtual pets and simple circuits. Draw directly in the browser, start from an example, or edit the parts by hand; build an interactive 3D scene; then let an audience change the same world from their phones.
 
-> The 3D model is **interpreted**: the vision model extracts parts (body shape, ears, eyes,
-> colours… or battery, switch, resistor, LED, wires) and the app assembles them from preset
-> 3D pieces. It is not free-form 3D mesh generation.
+The important step is the **validated Design Blueprint** between the idea and the scene. The renderer, interactions and blueprint files all use that specification. Pets are assembled from preset 3D parts; circuits use a deterministic series DC calculation. This build does not generate arbitrary meshes or CAD files.
 
-### Quick start
+The current demo uses **clearly labelled example mode, with no API key required**. Its 3D rendering, editors, pet simulation, circuit calculation and audience synchronisation run locally. Live sketch interpretation, AI decisions and portrait generation are separate, optional integrations; see [AI and example mode](#ai-and-example-mode).
 
-Requires Node.js ≥ 20.
+## Run it
+
+Requires Node.js 20 or later and npm. Node.js 22 is used in CI.
 
 ```bash
-npm install
+npm ci
+npm run dev
 ```
+
+Open the [host studio](http://localhost:5173) and the [audience page](http://localhost:5173/join). Both the UI and API use port 5173. With no `.env` or key, the server starts in example mode.
+
+For the quickest first creation, choose **Pet**, press **Try example**, edit its name or parts, and press **Build in 3D**. The audience page can then Feed, Pet and Play. Choose **Circuit** to build a battery–switch–resistor–LED loop and flip the switch.
+
+For a production build:
+
+```bash
+npm run build
+npm start
+```
+
+The app needs its Node server for API routes and Socket.IO; the generated client files alone are not the full application.
+
+For your teammate's API key and a public demo, follow the [deployment guide](docs/DEPLOYMENT.md). The current shared, in-memory server needs additional state and realtime coordination before it can be described as ready for a multi-instance Vercel deployment.
+
+## What you can make
+
+| Mode | Editable blueprint | Live behaviour |
+| --- | --- | --- |
+| Pet | Name, body shape, colours, one to three eyes, ears, legs, tail, mouth and simple extras | Hunger, happiness and energy change over time and through interactions; the pet animates its current action |
+| Circuit | Battery, resistor, LED, bulb and switch components, values, positions and wires | Open/closed loop detection, switch control, calculated current, LED state and warnings |
+
+The supported circuit is one series loop. Its main calculation is `I = (total battery voltage − total LED forward voltage) / total resistance`. It is an educational approximation, with default values when a component has no explicit value. It does not simulate arbitrary circuit networks or real electronic failure.
+
+The drawing pad supports pen, eraser, undo and clear. **Read this sketch** sends a real PNG through the same recognition path as an upload; **Save PNG** downloads the drawing itself. Uploads accept PNG, JPEG or WebP images up to 8 MB. Live interpretation needs a server key; its result is editable before building, and unclear details are shown to the host. Without a key, image reading explains that it is unavailable and the editable examples remain usable.
+
+**Save blueprint** downloads the confirmed creation as a JSON specification. **Open blueprint** validates an imported file before rebuilding through the normal creation API. This preserves the design, not the pet's interaction history or a generated mesh. Use the starter pets Pixel, Mochi or Orbit for a quick alternative design.
+
+The host can Feed, Pet and Play directly from the live readout. **Present** enlarges the stage for a demo; **Back to studio** or Escape restores the full editor.
+
+See the [two-minute demo and rehearsal checklist](docs/DEMO.md), [submission copy](docs/SUBMISSION.md), and [verification record](docs/VERIFICATION.md).
+
+## AI and example mode
+
+| Feature | With configured credentials | Without credentials |
+| --- | --- | --- |
+| Sketch interpretation | The server adapter sends the image to the Responses API with a structured pet/circuit schema, then validates the output | Built-in examples and manual editing remain available; no image analysis is claimed |
+| Ask the pet | The Decisions API chooses from allowed actions using the pet's current needs and recent interactions; application code validates and applies the choice | A deterministic rule chooses an action, visibly labelled as an example |
+| Pet portrait | The image adapter requests a 2D portrait, displayed on a stand | The procedural 3D pet remains available |
+
+The portrait is a picture, not a generated 3D mesh. A configured key means an integration is **Ready**; the status becomes **Live** only after a successful request. Failures are shown rather than presented as AI success.
+
+**Live OpenAI calls have not been verified from this checkout.** A key on a teammate's machine still needs a live smoke check and separate deployment configuration; see the [deployment guide](docs/DEPLOYMENT.md). Automated API tests inject controlled responses; they establish application behaviour, not live model access or quality. The local demo does not require those calls.
+
+To enable the integrations, copy `.env.example` to `.env` and set credentials on the server only:
 
 ```bash
 cp .env.example .env
 ```
 
+| Variable | Repository default | Purpose |
+| --- | --- | --- |
+| `OPENAI_API_KEY` | Unset | Enables live adapters; the sample placeholder is treated as unset |
+| `OPENAI_VISION_MODEL` | `gpt-6-astra` | Configured model ID for image interpretation |
+| `OPENAI_DECISIONS_MODEL` | `gpt-6-luna` | Configured model ID for pet decisions |
+| `OPENAI_IMAGE_MODEL` | `gpt-image-2.5-flare` | Configured model ID for optional portraits |
+| `OPENAI_BASE_URL` | `https://api.openai.com/v1` | Optional API base URL override |
+| `HOST` / `PORT` | `0.0.0.0` / `5173` | Server bind address and port |
+| `PUBLIC_BASE_URL` | Unset | Reachable origin used in the audience QR code |
+
+These are the repository's configured IDs, not a claim that every account can access them. Change the matching setting if the API reports an unavailable model. Never commit `.env` or a real key.
+
+Run the optional live smoke check only after configuring credentials:
+
 ```bash
-npm run dev
+npm run smoke:live
 ```
 
-Host screen: http://localhost:5173 · Guest page: http://localhost:5173/join
+It makes real vision and decision requests. `npm run smoke:live -- --image` also requests a billed image. With no key, the script reports that live calls were not verified.
 
-| Command | What it does |
+## Audience phones
+
+Phones need an address they can reach; `localhost` points to the phone itself. Set `PUBLIC_BASE_URL` to this computer's LAN origin on the same Wi-Fi, or to an existing reachable HTTPS tunnel, then restart the server. For example:
+
+```dotenv
+PUBLIC_BASE_URL=http://192.168.1.20:5173
+```
+
+Use your computer's actual address. Wi-Fi client isolation can prevent this connection. The audience QR code points to `/join`; host and guest updates are broadcast over Socket.IO. A second browser tab at `/join` is useful for a local rehearsal. Camera capture generally needs HTTPS or localhost; choosing an existing image file remains available.
+
+## Architecture
+
+```mermaid
+flowchart LR
+  Input[Sketch or uploaded image] --> AI[Optional vision adapter]
+  AI --> Validate[Validate blueprint]
+  Examples[Examples and manual editor] --> Validate
+  Validate --> Session[In-memory session]
+  Session --> Scene[Procedural 3D scene]
+  Session --> Simulation[Pet simulation or circuit solver]
+  Simulation --> Session
+  Session --> Socket[Socket.IO state broadcast]
+  Socket --> Host[Host studio]
+  Socket --> Guest[Audience phones]
+```
+
+| Location | Responsibility |
 | --- | --- |
-| `npm run dev` | API + websocket + UI in one process (port `PORT`, default 5173) |
-| `npm test` | Vitest unit + API tests (no network, OpenAI mocked in tests only) |
-| `npm run test:e2e` | Playwright host/guest flow in example mode (no API key needed) |
-| `npm run typecheck` | TypeScript check |
-| `npm run build` | Typecheck + production client build |
-| `npm start` | Serve the production build |
-| `npm run smoke:live` | Minimal real API calls (only if `OPENAI_API_KEY` is set) |
+| `shared/` | TypeScript contracts, blueprint types and validation |
+| `server/` | Express API, in-memory session, bounded interactions, simulations and OpenAI adapters |
+| `src/host/` | Creation editors, stage controls, readouts and audience link |
+| `src/guest/` | Phone interaction page |
+| `src/scene/` | React Three Fiber scene and preset pet/circuit geometry |
+| `tests/` | Vitest unit/API tests and Playwright desktop/mobile flows |
 
-### Configuration (`.env`)
+The primary routes are `GET /api/health`, `GET /api/state`, `POST /api/creation`, `POST /api/interactions`, `POST /api/vision/analyze?mode=pet|circuit`, `POST /api/bean/ask`, `POST /api/bean/image`, and `GET /api/bean/image.png`. All mutations use REST; Socket.IO broadcasts state. Legacy queue-simulation routes remain in the repository but are outside this pet/circuit demo.
 
-| Variable | Default | Notes |
-| --- | --- | --- |
-| `OPENAI_API_KEY` | – | Server-side only. Without it the app runs in labelled example mode. |
-| `OPENAI_VISION_MODEL` | `gpt-6-astra` | Reads the sketch (Responses API + structured outputs) |
-| `OPENAI_DECISIONS_MODEL` | `gpt-6-luna` | "Ask the pet" (Decisions API, choice question) |
-| `OPENAI_IMAGE_MODEL` | `gpt-image-2.5-flare` | Optional 2D pet portrait |
-| `HOST` / `PORT` | `0.0.0.0` / `5173` | Listen address |
-| `PUBLIC_BASE_URL` | – | URL phones open (QR code). Defaults to the host page origin. |
+## Verify it
 
-### What is real and what is example
+```bash
+npm run typecheck
+npm test
+npm run build
+npx playwright install chromium
+npm run test:e2e
+```
 
-- **Example mode works with no key.** "Try example" loads a built-in pet or circuit and is
-  labelled "Example: no image analysis used". Without a key, "Ask the pet" uses a
-  deterministic rule labelled "Example action (rule-based, no AI)".
-- **With a key:** uploaded photos are read by the vision model (validated server-side; you can
-  edit every part before building), "Ask the pet" calls the Decisions API with the pet's
-  needs as evidence and only the actions that make sense, and "Customize skin" generates a
-  2D portrait shown on a stand (not a 3D model).
-- Each integration shows its own status: Live, Ready, Waiting, Not configured, Unavailable.
-- Circuit numbers are a real series DC calculation (I = (V − LED drop) / R) using the values on
-  the drawing, or defaults (9 V, 220 Ω, LED 2 V) when none are written.
-- **Not verified here:** no live OpenAI call has been made from this repo yet (no key was
-  available during the build). Run `npm run smoke:live` with a key to check.
+Playwright starts its own server on port 4599 with `OPENAI_API_KEY` explicitly empty. It runs Chromium desktop and mobile viewport projects; traces and screenshots are retained on failure. CI installs browser system dependencies and runs the same checks. Final command results and remaining verification gaps are recorded in [docs/VERIFICATION.md](docs/VERIFICATION.md).
 
-### Supported drawings
+## Limits and troubleshooting
 
-- **Pet:** one creature; body, eyes, ears, legs, tail, mouth and simple extras (wings, horn,
-  spots, hat, whiskers).
-- **Circuit:** one series loop with battery, switch, resistor, LED and/or bulb, connected by
-  wires. Write values (e.g. `9V`, `220Ω`) next to parts if you want them used.
+- One shared, in-memory session exists per server process. Refreshing the browser reconnects to it; restarting the server clears it. There are no accounts or private rooms. Download a blueprint to retain a design across restarts.
+- This is a hackathon demo for a trusted audience. Host mutation routes are not authenticated; anyone who can reach the server can change the shared creation.
+- WebGL is required for the 3D scene. When it is unavailable, the app displays a fallback while readouts and controls remain useful.
+- API errors such as invalid credentials, model access, timeouts and rejected outputs appear in the status/readout UI. No API key is sent to the browser.
+- Supported output is JSON blueprints and sketch PNGs. CAD, STL/GLB export, arbitrary 3D reconstruction, voice input and general web component generation are outside this build.
 
-### Audience phones / networking
+## Built with and credits
 
-Phones cannot open `localhost`. Set `PUBLIC_BASE_URL` to a reachable address, e.g. this
-computer's LAN IP on the same Wi-Fi (`http://192.168.1.20:5173`, networks with client
-isolation will block it) or an HTTPS tunnel you already have. The host screen warns when
-the guest URL is localhost; the host can still interact from the main screen. Live camera
-capture needs HTTPS or localhost; file upload works everywhere.
+React, TypeScript, Three.js, React Three Fiber, Drei, Vite, Express, Socket.IO, Zod and qrcode power the application. Vitest, Supertest, Testing Library and Playwright support verification. OpenAI adapters provide the optional live integrations. See `package.json` and `package-lock.json` for the exact dependency set.
 
-State is in memory: restarting the server clears it.
-
-### Troubleshooting
-
-- **401** invalid key · **403** model access / organization verification · **404** model not
-  found → change the matching `OPENAI_*_MODEL`. The status card shows the reason.
-- **3D view blank:** if WebGL is unavailable the page shows a notice and the text readouts
-  keep working.
-
-### Demo script
-
-1. Draw a pet (or a battery → switch → resistor → LED loop) and upload it, or press **Try example**.
-2. Check the recognised parts, edit anything, press **Build in 3D** and watch it rise.
-3. Ask the audience to scan the QR code and Feed / Pet / Play (or Flip switch).
-4. Watch the needs bars (or current and LED) change live on every screen.
-5. Press **Ask the pet**: a real AI decision is labelled with its model; without a key it is
-   clearly labelled as an example rule.
-6. Switch to **Circuit**, change the resistor value, rebuild, and show the current change.
-
-### Project layout
-
-`shared/` contracts and validation · `server/` Express + Socket.IO session, pet sim, circuit
-solver, OpenAI adapters · `src/host`, `src/guest` React screens · `src/scene` React Three
-Fiber world · `tests/` Vitest and Playwright.
+The repository already contained the pet/circuit studio, procedural renderers, examples, simulation and API adapters before the final demo preparation. Codex assisted with source inspection, implementation, reliability fixes, tests, documentation and demo preparation; concrete contributions and scope are described in [docs/SUBMISSION.md](docs/SUBMISSION.md). No third-party asset ownership or team attribution is implied beyond what is documented there.
