@@ -1,4 +1,4 @@
-# Living Paper demo design
+# VDraw demo design
 
 User intent: make the existing hackathon app impressive, reliable, tested, pushed, and ready to submit before 15:00 Europe/London on 2026-11-01. The user delegated design choices and selected example mode for now.
 

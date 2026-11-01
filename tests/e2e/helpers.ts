@@ -71,6 +71,14 @@ export async function saveScreenshot(page: Page, name: string) {
   return file;
 }
 
+/** Opens a built-in design and its Live test tab, the way a user would. */
+export async function openLiveTest(page: Page, template: 'pixel_pet' | 'led_circuit') {
+  await page.goto('/');
+  await page.getByTestId(`template-${template}`).click();
+  await page.getByTestId('view-live').click();
+  await expect(page.getByTestId('live-cards')).toBeVisible();
+}
+
 /** Decodes a PNG inside the page (no Node image deps) and returns RGBA pixels. */
 async function decodePngInPage(page: Page, png: Buffer) {
   return page.evaluate(async (b64) => {

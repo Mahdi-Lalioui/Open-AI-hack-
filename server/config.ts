@@ -10,7 +10,9 @@ export interface AppConfig {
     visionModel: string;
     decisionsModel: string;
     imageModel: string;
+    transcribeModel?: string;
     /** Request timeouts in ms. */
+    designTimeoutMs?: number;
     visionTimeoutMs: number;
     decisionsTimeoutMs: number;
     imageTimeoutMs: number;
@@ -37,6 +39,9 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
       visionModel: clean(env.OPENAI_VISION_MODEL) ?? 'gpt-6-astra',
       decisionsModel: clean(env.OPENAI_DECISIONS_MODEL) ?? 'gpt-6-luna',
       imageModel: clean(env.OPENAI_IMAGE_MODEL) ?? 'gpt-image-2.5-flare',
+      transcribeModel: clean(env.OPENAI_TRANSCRIBE_MODEL) ?? 'gpt-4o-transcribe',
+      // A full Blueprint is far longer than a sketch reading.
+      designTimeoutMs: Number(env.OPENAI_DESIGN_TIMEOUT_MS) || 180_000,
       visionTimeoutMs: Number(env.OPENAI_VISION_TIMEOUT_MS) || 45_000,
       decisionsTimeoutMs: Number(env.OPENAI_DECISIONS_TIMEOUT_MS) || 20_000,
       imageTimeoutMs: Number(env.OPENAI_IMAGE_TIMEOUT_MS) || 90_000,

@@ -9,18 +9,24 @@ import { SOCKET_EVENTS } from '../shared/types';
 import type { LiveSessionApi } from './types';
 import { createSimRouter } from './routes/sim';
 import { createAiRouter } from './routes/ai';
+import { createDesignRouter } from './routes/design';
 import type { OpenAIAdapter } from './openai';
+import { NOT_CONFIGURED_DESIGN_AI, type DesignAi } from './openai/design';
 
 export interface AppDeps {
   session: LiveSessionApi;
   openai: OpenAIAdapter;
+  designAi?: DesignAi;
 }
 
-export function createApp({ session, openai }: AppDeps) {
+export function createApp({ session, openai, designAi = NOT_CONFIGURED_DESIGN_AI }: AppDeps) {
   const app = express();
   app.disable('x-powered-by');
   // Behind a tunnel/reverse proxy the client IP comes from X-Forwarded-For (used for rate limiting).
   app.set('trust proxy', true);
+
+  // Before the 64 kB JSON limit below: design requests can carry a sketch.
+  app.use('/api/design', createDesignRouter(designAi));
 
   app.use('/api', express.json({ limit: '64kb' }));
 

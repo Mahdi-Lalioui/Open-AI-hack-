@@ -119,7 +119,7 @@ export function beanSourceLabel(decision: Pick<BeanDecision, 'source' | 'model'>
 /** Title for the guest page, e.g. "Barista café". */
 export function cafeTitle(world: WorldConfig | null | undefined): string {
   const service = world?.graph.nodes.find((n) => n.kind === 'service')?.label.trim();
-  if (!service) return 'Living Paper café';
+  if (!service) return 'VDraw café';
   if (/caf[eé]|coffee/i.test(service)) return service;
   return `${service} café`;
 }

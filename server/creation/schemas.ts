@@ -2,8 +2,8 @@
 import { z } from 'zod';
 import { NICKNAME_MAX } from '../../shared/validation';
 
-export { petSpecSchema, circuitSpecSchema, buildCreationSchema } from '../../shared/blueprint';
-export type { BuildCreationInput } from '../../shared/blueprint';
+export { petSpecSchema, circuitSpecSchema, buildCreationSchema } from '../../shared/blueprint/specs';
+export type { BuildCreationInput } from '../../shared/blueprint/specs';
 
 export const interactionSchema = z.object({
   id: z.string().trim().min(8).max(64).regex(/^[A-Za-z0-9_-]+$/, 'Invalid interaction id'),

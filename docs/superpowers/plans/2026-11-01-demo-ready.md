@@ -1,4 +1,4 @@
-# Living Paper Demo Implementation Plan
+# VDraw Demo Implementation Plan
 
 > **For agentic workers:** Use focused parallel implementation with a fresh whole-branch review. User delegated all implementation choices.
 

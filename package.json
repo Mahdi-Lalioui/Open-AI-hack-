@@ -1,19 +1,20 @@
 {
-  "name": "living-paper",
+  "name": "vdraw",
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Turn a sketch into a world you can test.",
+  "description": "Sketch it. Describe it. Bring it to life.",
   "author": "Mahdi Lalioui",
   "scripts": {
-    "dev": "tsx watch --clear-screen=false --ignore 'src/**' --ignore 'vite.config.ts.*' server/index.ts",
+    "dev": "tsx watch --clear-screen=false --ignore \"src/**\" --ignore \"vite.config.ts.*\" server/index.ts",
     "build": "npm run typecheck && vite build",
-    "start": "NODE_ENV=production tsx server/index.ts",
+    "start": "tsx scripts/start.ts",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
-    "smoke:live": "tsx scripts/live-smoke.ts"
+    "smoke:live": "tsx scripts/live-smoke.ts",
+    "smoke:design": "tsx scripts/design-smoke.ts"
   },
   "engines": {
     "node": ">=20"

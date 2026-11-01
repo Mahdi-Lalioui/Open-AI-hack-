@@ -1,43 +1,33 @@
-# Living Paper: two-minute demo
+# VDraw demo script
 
-This script is for **example mode**, without an API key. The 3D scene, editable blueprint, simulation and audience synchronisation are real; image recognition and the example pet decision must be described accurately.
+This takes about three minutes. With a configured key, a new design can take up to a minute and a refinement around 30 seconds, so plan to talk through the problem while they run. The built-in examples need no key and no internet, which makes them your backup if anything goes wrong.
 
-## Rehearse once
+## Before you go on
 
-1. Run `npm ci`, `npm run build`, then `npm start`.
-2. Open the host studio at `http://localhost:5173` in a WebGL-capable browser. Keep a second browser at `/join` ready. For phones, set `PUBLIC_BASE_URL` to a reachable LAN or HTTPS origin before starting the server; test the QR code on the actual Wi-Fi.
-3. Confirm the connection indicator and example-mode label. Build a pet once and try an audience interaction; then return to the pet creation controls.
-4. Keep the circuit example available. Use a 9 V battery, a 2 V LED and a 470 Ω resistor for a closed-loop current of approximately 14.9 mA. Switch open means 0 mA.
-5. Close unrelated windows, enlarge the browser for the projector, and keep the guest tab or phone within reach. Do not depend on a live API request during this no-key demonstration.
+Run `npm ci`, `npm run build` and `npm start`, then run `npm run smoke:design` once so you know the key and models are working that day. Open `http://localhost:5173` in a browser with WebGL and keep a second browser at `/join` ready. If you want real phones in the room, set `PUBLIC_BASE_URL` to a reachable address before starting the server and try the QR code on the venue's Wi-Fi first. It also helps to close anything unrelated and enlarge the browser for the projector.
 
-## Exact run of show
+## Run of show
 
-| Time | Presenter action | Say |
-| --- | --- | --- |
-| 0:00–0:15 | Show the empty studio and its example-mode label. | “Living Paper turns a small idea into a world you can test. We focus on two things people immediately understand: a pet you can care for, and a circuit you can experiment with.” |
-| 0:15–0:35 | In **Pet**, press **Try example**. Change the name to **Pixel** and change an obvious part, such as the ears or body colour. | “This run uses labelled examples because no API key is configured. The editable blueprint describes the parts. With credentials, our vision adapter can read a sketch into this same structure for the user to check.” |
-| 0:35–0:50 | Press **Build in 3D**. Rotate or zoom the stage once. | “The app validates that blueprint, then assembles preset 3D pieces. It is an interpreted model, and I can keep editing the design.” |
-| 0:50–1:10 | Show the audience QR code. On the prepared phone or guest browser, press **Feed**, **Pet**, then **Play**, pausing briefly between actions. Point to the host needs and current action. | “The audience shares this world. These actions change the pet's needs and animation, and the server broadcasts the same state to every connected screen.” |
-| 1:10–1:25 | Press **Ask Pixel** and show its source label. | “The pet can choose its next action from a bounded set. Here the decision is explicitly a rule-based example. The live adapter uses current needs and recent interactions, and application code checks the result before applying it.” |
-| 1:25–1:45 | Choose **Circuit**, press **Try example**, set the resistor to **470** if necessary, and press **Build in 3D**. Close the switch if open. | “The same blueprint approach also builds a circuit. This is a single series loop: nine volts, a two-volt LED and 470 ohms gives about 14.9 milliamps.” |
-| 1:45–2:00 | Flip the switch open, show zero current, then close it again. | “The light follows a real calculation, and opening the switch stops the current. The idea is simple: make the interpretation editable, then let people test its behaviour together.” |
+| Time | What you do | What you say |
+|---|---|---|
+| 0:00 | Show the landing page and press **Try it out**. | "Turning an idea into something real usually means learning CAD, 3D tools and some code, so we built VDraw to start from the rough idea instead." |
+| 0:15 | Press **Sample sketch**, type *A modular desk organiser with a tall pen bin, two cups and a phone tray, about 24 cm wide*, and press **Create design**. | "I could sketch this, upload a photo, type it or say it out loud. The AI isn't drawing a picture here, it's filling in a structured Blueprint that we check before anything gets built." |
+| 1:00 | When it appears, rotate it, press **Exploded view**, then press its animation button. | "This is real geometry measured in millimetres, and underneath you can see what it had to assume." |
+| 1:20 | Under **Refine it**, type *make it 20% wider and make the phone tray blue*. | "If I want it changed, I just say so." |
+| 1:50 | Click a part in the inspector and change one of its sizes. | "I can also edit the real parameters by hand, and if I ask for something impossible it refuses and keeps my design." |
+| 2:05 | Open the **CAD source** and **Web page** tabs, then download the STL. | "All of these come from the same Blueprint, so the CAD file, the print file and the web page can't disagree with each other." |
+| 2:25 | Under the examples, press **LED circuit**, then **Live test**. Flip the switch, then flip it from the phone. | "Designs that do something can be tested too. This is a real series calculation, where 9 volts, a 2 volt LED and 470 ohms gives about 14.9 milliamps, and everyone's screen stays in sync." |
+| 2:45 | For a laugh, press **Pixel the pet**, then **Live test**, and feed it from the phone. | "And it doesn't always have to be serious." |
 
-The exact rule-based pet action depends on current needs; do not promise a particular choice. Circuit numbers are the calculated example above, not a measurement from physical hardware.
+The bedside table, the electronics case and the planter are all good to have ready for questions, especially the table with its **Open drawer** animation. When the pet's decision comes from a rule rather than the AI, the app labels it, so don't promise a particular result.
 
-## Optional proof points after the timed demo
+## If something goes wrong
 
-- Draw on the canvas, use the eraser or undo, and press **Save PNG**. Explain that **Read this sketch** needs server credentials. Do not claim the example was read from the drawing.
-- Press **Save blueprint**, change the creation, and use **Open blueprint** to rebuild the saved design. The JSON file is a design specification, not a mesh or CAD file.
-- Press **Present** to make the stage easier to see on a projector; use **Back to studio** or Escape to return to the full studio.
-- Show the automated checks in [VERIFICATION.md](VERIFICATION.md). Avoid quoting results that are not recorded there.
+| What happens | What to do |
+|---|---|
+| The AI is slow or fails | The error explains why and your design stays put. Press **Try without AI**, or load **Desk organiser** from the examples and say that it's a built-in one. |
+| A phone can't join | Say the network is blocking phones and carry on with the second browser, since it's the same audience page. |
+| WebGL isn't available | Switch browsers if you can. Otherwise show the inspector, the CAD source and the exports, which all still work. |
+| You're running out of time | Jump to the CAD source and web page tabs, because that's the moment that shows one idea becoming several real outputs. |
 
-## Recovery lines
-
-| Situation | Response |
-| --- | --- |
-| Phone cannot join | “This venue network is blocking the phone connection; this second browser uses the same audience page.” Continue from the prepared guest browser. |
-| WebGL is unavailable | Use another prepared WebGL-capable browser. If none is available, demonstrate the editable blueprint and live readout, and state that this browser cannot show the 3D scene. |
-| A live integration fails | Read the visible status and continue with **Try example**. Say “That live call failed; this example path is labelled.” |
-| Time is running out | Finish the audience interaction and circuit switch. Leave optional drawing, files and presentation controls for questions. |
-
-Do not submit a deployment or video link until it exists and has been opened successfully. Submission text and missing metadata are in [SUBMISSION.md](SUBMISSION.md).
+Please don't submit a deployment or video link until it exists and someone has opened it successfully. The rest of the submission text is in [SUBMISSION.md](SUBMISSION.md).

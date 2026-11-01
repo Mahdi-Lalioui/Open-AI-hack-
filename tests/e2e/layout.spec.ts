@@ -5,6 +5,7 @@
 import { chromium, expect, test, type Page } from '@playwright/test';
 import {
   getState,
+  openLiveTest,
   horizontalOverflow,
   pixelStats,
   qrEncodes,
@@ -16,9 +17,9 @@ import { DEFAULT_PET } from '../../shared/creations';
 
 const METRICS = ['pet-hunger', 'pet-happiness', 'pet-energy'];
 
-/** Waits for the host page to have a world on screen (3D canvas or the text fallback). */
+/** Opens the example character's Live test, with its world on screen (3D canvas or the text fallback). */
 async function hostReady(page: Page) {
-  await page.goto('/');
+  await openLiveTest(page, 'pixel_pet');
   await expect(page.getByTestId('build-world')).toBeVisible();
   await expect(page.getByTestId('world-canvas').or(page.getByTestId('webgl-fallback')).first()).toBeVisible();
 }
@@ -98,9 +99,7 @@ test.describe('layout', () => {
   test('Tab reaches the main controls with a visible focus indicator', async ({ page }, info) => {
     test.skip(info.project.name === 'mobile', 'keyboard navigation is checked on desktop');
     await hostReady(page);
-    // The example draft must be loaded for Build world to be enabled.
-    await page.getByTestId('try-example').click();
-    const wanted = new Set(['try-example', 'build-world', 'upload-input']);
+    const wanted = new Set(['template-pixel_pet', 'idea-text', 'blueprint-import', 'build-world']);
     const found: Record<string, { outline: string; shadow: string }> = {};
     await page.locator('body').click({ position: { x: 1, y: 1 } });
     for (let i = 0; i < 150 && Object.keys(found).length < wanted.size; i++) {
@@ -130,7 +129,6 @@ test.describe('layout', () => {
     const errors = trackErrors(page);
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await hostReady(page);
-    await page.getByTestId('try-example').click();
     await page.getByTestId('build-world').click();
     await expect(page.getByTestId('world-canvas').or(page.getByTestId('webgl-fallback')).first()).toBeVisible();
     await expect(page.getByTestId('pet-hunger')).toBeVisible();
@@ -187,7 +185,7 @@ test.describe('WebGL unavailable', () => {
       };
     });
     const errors = trackErrors(page);
-    await page.goto('/');
+    await openLiveTest(page, 'pixel_pet');
     await expect(page.getByTestId('webgl-fallback')).toBeVisible();
     await expect(page.getByTestId('pet-hunger')).toBeVisible();
     expect((await getState(request)).creation?.mode).toBe('pet');
@@ -202,7 +200,7 @@ test.describe('WebGL unavailable', () => {
     const browser = await chromium.launch({ args: ['--disable-webgl', '--disable-3d-apis'] });
     try {
       const page = await browser.newPage({ baseURL: test.info().project.use.baseURL, viewport: { width: 1365, height: 768 } });
-      await page.goto('/');
+      await openLiveTest(page, 'pixel_pet');
       await expect(page.getByTestId('webgl-fallback')).toBeVisible();
       await expect(page.getByTestId('pet-hunger')).toBeVisible();
     } finally {

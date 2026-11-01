@@ -53,7 +53,7 @@ export function GuestPage() {
 
   return <div className="app guest">
     {connection === 'offline' && <p className="banner" role="status">Connection lost — reconnecting…</p>}
-    <header className="guest-topbar"><a className="brand" href="/" aria-label="Living Paper studio"><span className="brand-icon"><Icon name="paper" size={22} /></span><span className="wordmark">Living Paper<span className="brand-period">.</span></span></a><ConnectionPill connection={connection} /></header>
+    <header className="guest-topbar"><a className="brand" href="/" aria-label="VDraw studio"><span className="brand-icon"><Icon name="paper" size={22} /></span><span className="wordmark">VDraw<span className="brand-period">.</span></span></a><ConnectionPill connection={connection} /></header>
     <main className="guest-main">
       <div className={`guest-emblem ${isCircuit ? 'guest-emblem-circuit' : ''}`}><Icon name={isCircuit ? 'bolt' : 'heart'} size={38} /><span className="emblem-spark"><Icon name="spark" size={20} /></span></div>
       <p className="eyebrow">You’re part of the story</p>

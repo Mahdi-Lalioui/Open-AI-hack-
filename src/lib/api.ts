@@ -20,7 +20,7 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   try {
     res = await fetch(path, { ...init, headers: { Accept: 'application/json', ...(init.headers ?? {}) } });
   } catch {
-    throw new ApiClientError('Cannot reach the Living Paper server. Check the connection.', 'network', 0);
+    throw new ApiClientError('Cannot reach the VDraw server. Check the connection.', 'network', 0);
   }
   let body: unknown = null;
   try {

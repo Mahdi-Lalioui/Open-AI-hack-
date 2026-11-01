@@ -10,6 +10,7 @@ import { loadConfig } from './config';
 import { createApp, attachRealtime } from './app';
 import { LiveSession } from './session';
 import { createOpenAIAdapter } from './openai';
+import { createDesignAi } from './openai/design';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -21,7 +22,7 @@ async function main() {
     publicBaseUrl: config.publicBaseUrl,
   });
 
-  const app = createApp({ session, openai });
+  const app = createApp({ session, openai, designAi: createDesignAi(config.openai) });
   const server = http.createServer(app);
   attachRealtime(server, session);
 
@@ -41,8 +42,8 @@ async function main() {
 
   server.listen(config.port, config.host, () => {
     const local = `http://localhost:${config.port}`;
-    console.log(`\n  Living Paper ${config.isProduction ? '(production)' : '(dev)'}`);
-    console.log(`  Host screen:  ${local}/`);
+    console.log(`\n  VDraw ${config.isProduction ? '(production)' : '(dev)'}`);
+    console.log(`  App:          ${local}/`);
     console.log(`  Guest page:   ${(config.publicBaseUrl ?? local) + '/join'}`);
     console.log(`  OpenAI key:   ${config.openai.apiKey ? 'configured' : 'not configured (example mode)'}`);
     if (!config.publicBaseUrl) {
@@ -60,6 +61,6 @@ async function main() {
 }
 
 main().catch((err) => {
-  console.error('Failed to start Living Paper:', (err as Error).message);
+  console.error('Failed to start VDraw:', (err as Error).message);
   process.exit(1);
 });

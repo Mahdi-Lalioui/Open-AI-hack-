@@ -9,7 +9,7 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   try {
     res = await fetch(path, { ...init, headers: { Accept: 'application/json', ...(init.headers ?? {}) } });
   } catch {
-    throw new ApiClientError('Cannot reach the Living Paper server. Check the connection.', 'network', 0);
+    throw new ApiClientError('Cannot reach the VDraw server. Check the connection.', 'network', 0);
   }
   let body: { ok?: boolean; error?: string; code?: string } | null = null;
   try { body = await res.json(); } catch { /* non-JSON */ }
@@ -35,7 +35,7 @@ export function buildCreation(input: { mode: SketchMode; pet?: PetSpec; circuit?
 }
 
 let clientId: string | null = null;
-const CLIENT_ID_KEY = 'living-paper-client-id';
+const CLIENT_ID_KEY = 'vdraw-client-id';
 
 function browserClientId(): string {
   if (clientId) return clientId;

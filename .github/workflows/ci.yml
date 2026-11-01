@@ -1,4 +1,4 @@
-name: Verify Living Paper
+name: Verify VDraw
 
 on:
   push:

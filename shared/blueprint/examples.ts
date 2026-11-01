@@ -1,5 +1,5 @@
-import type { CircuitSpec, PetSpec } from '../../shared/creations';
-import { DEFAULT_PET } from '../../shared/creations';
+import type { CircuitSpec, PetSpec } from '../creations';
+import { DEFAULT_PET } from '../creations';
 
 export const examplePet = (): PetSpec => structuredClone(DEFAULT_PET);
 
