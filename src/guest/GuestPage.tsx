@@ -4,7 +4,7 @@ import type { InteractionKind } from '../../shared/creations';
 import { NICKNAME_MAX } from '../../shared/validation';
 import { useLiveState } from '../lib/useLiveState';
 import { ApiClientError, newOrderId } from '../lib/api';
-import { sendInteraction, type CreationStateFields } from '../lib/creationApi';
+import { sendInteraction } from '../lib/creationApi';
 
 const PET_ACTIONS: { kind: InteractionKind; label: string; done: string }[] = [
   { kind: 'feed', label: 'Feed', done: 'Yum! Thanks for the snack.' },
@@ -14,8 +14,7 @@ const PET_ACTIONS: { kind: InteractionKind; label: string; done: string }[] = [
 
 export function GuestPage() {
   const { state, connection } = useLiveState();
-  const ext = (state ?? {}) as CreationStateFields;
-  const creation = ext.creation ?? null;
+  const creation = state?.creation ?? null;
   const [nickname, setNickname] = useState('');
   const [sending, setSending] = useState<InteractionKind | null>(null);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
@@ -47,8 +46,8 @@ export function GuestPage() {
 
   const isCircuit = creation?.mode === 'circuit';
   const title = !creation ? 'Living Paper' : isCircuit ? 'Living Paper circuit' : creation.pet?.name || 'Living Paper pet';
-  const pet = ext.pet;
-  const circuit = ext.circuit;
+  const pet = state?.pet;
+  const circuit = state?.circuit;
 
   return (
     <div className="app guest">
@@ -86,8 +85,8 @@ export function GuestPage() {
         {pet && !isCircuit && (
           <p className="guest-live muted" data-testid="guest-live">Hunger {Math.round(pet.hunger)} · Happiness {Math.round(pet.happiness)} · Energy {Math.round(pet.energy)} · now {pet.action}</p>
         )}
-        {circuit && isCircuit && (
-          <p className="guest-live muted" data-testid="guest-live">Switch {circuit.switchClosed ? 'closed' : 'open'} · LED {circuit.ledOn ? 'on' : 'off'} · {circuit.currentMa.toFixed(1)} mA</p>
+        {circuit?.result && isCircuit && (
+          <p className="guest-live muted" data-testid="guest-live">Switch {circuit.switchClosed ? 'closed' : 'open'} · LED {circuit.result.ledOn ? 'on' : 'off'} · {circuit.result.currentMa.toFixed(1)} mA</p>
         )}
       </main>
     </div>

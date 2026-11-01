@@ -95,6 +95,7 @@ function Contents({ props }: { props: WorldProps }) {
       <Stage hasWorld={!!creation} />
       <ContactShadows position-y={PAPER.top + 0.004} scale={[13, 9]} resolution={512} blur={2.4} far={3} opacity={0.38} color="#4A3A28" />
       {creation?.mode === 'pet' && (
+        <group scale={1.8}>
         <PetModel
           key={creation.version}
           spec={creation.pet ?? DEFAULT_PET}
@@ -103,11 +104,13 @@ function Contents({ props }: { props: WorldProps }) {
           imageUrl={imageUrl}
           selectId="bean"
         />
+        </group>
       )}
       {creation?.mode === 'circuit' && creation.circuit && (
         <CircuitBoard key={creation.version} spec={creation.circuit} result={getCircuitResult(state)} />
       )}
-      <CameraRig command={props.cameraCommand} reducedMotion={reducedMotion} focus={creation?.mode === 'pet' ? 0.6 : 1} />
+      <CameraRig command={props.cameraCommand} reducedMotion={reducedMotion} focus={creation?.mode === 'pet' ? 0.85 : creation?.mode === 'circuit' ? 0.8 : 1}
+        targetY={creation?.mode === 'pet' ? 1.9 : 0.5} />
     </SceneCtx.Provider>
   );
 }

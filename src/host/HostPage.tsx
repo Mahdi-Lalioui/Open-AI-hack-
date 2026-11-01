@@ -4,7 +4,6 @@ import type { SketchMode } from '../../shared/creations';
 import { useLiveState } from '../lib/useLiveState';
 import { useReducedMotion } from '../lib/useReducedMotion';
 import { isLiveAiAvailable } from '../lib/format';
-import type { CreationStateFields } from '../lib/creationApi';
 import { World } from '../scene/World';
 import type { CameraCommand, CameraCommandType, StationId } from '../scene/types';
 import { ConnectionPill } from '../components/ConnectionPill';
@@ -25,8 +24,7 @@ const CAMERA: { type: CameraCommandType; label: string; icon: string }[] = [
 export function HostPage() {
   const { state, connection } = useLiveState();
   const reducedMotion = useReducedMotion();
-  const ext = (state ?? {}) as CreationStateFields;
-  const creation = ext.creation ?? null;
+  const creation = state?.creation ?? null;
   const [mode, setMode] = useState<SketchMode>('pet');
   const [selected, setSelected] = useState<StationId | null>(null);
   const [camera, setCamera] = useState<CameraCommand | null>(null);
@@ -126,20 +124,19 @@ export function HostPage() {
               </p>
             )}
             {webgl && <span className="visually-hidden">3D unavailable: {webgl}</span>}
-          </div>
-          <div className="control-bar" role="group" aria-label="Camera">
-            <span className="inspect-label">Camera</span>
+            <div className="stage-camera" role="group" aria-label="Camera">
             {CAMERA.map((c) => (
               <button key={c.type} type="button" className="btn btn-icon-only" aria-label={c.label} title={c.label} disabled={!state}
                 data-testid={`camera-${c.type}`} onClick={() => setCamera((p) => ({ type: c.type, nonce: (p?.nonce ?? 0) + 1 }))}>
                 <span aria-hidden="true">{c.icon}</span>
               </button>
             ))}
+            </div>
           </div>
         </section>
 
         <section className="col col-right" aria-label="Live readout and audience">
-          <ReadoutCard mode={shownMode} pet={ext.pet ?? null} circuit={ext.circuit ?? null} petName={creation?.pet?.name} />
+          <ReadoutCard mode={shownMode} pet={state?.pet ?? null} circuit={state?.circuit?.result ?? null} switchClosed={state?.circuit?.switchClosed} petName={creation?.pet?.name} />
           {shownMode === 'pet' && <AskCard state={state} petName={petName} />}
           <AudienceCard state={state} />
           <ApiStatusCard state={state} />

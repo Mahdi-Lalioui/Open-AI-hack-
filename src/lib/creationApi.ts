@@ -38,9 +38,3 @@ export function sendInteraction(input: { id: string; kind: InteractionKind; nick
   return post<{ ok: true; duplicate?: boolean }>('/api/interactions', input);
 }
 
-/** Optional pivot fields the server adds to PublicState. Read defensively. */
-export interface CreationStateFields {
-  creation?: CreationConfig | null;
-  pet?: PetState | null;
-  circuit?: CircuitResult | null;
-}

@@ -18,7 +18,7 @@ function Bar({ label, value, testId, invert }: { label: string; value: number; t
   );
 }
 
-export function ReadoutCard({ mode, pet, circuit, petName }: { mode: SketchMode; pet: PetState | null; circuit: CircuitResult | null; petName?: string }) {
+export function ReadoutCard({ mode, pet, circuit, petName, switchClosed }: { mode: SketchMode; pet: PetState | null; circuit: CircuitResult | null; petName?: string; switchClosed?: boolean }) {
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   async function flip() {
@@ -51,7 +51,7 @@ export function ReadoutCard({ mode, pet, circuit, petName }: { mode: SketchMode;
           <p className="readout-line" data-testid="circuit-message">{circuit.message}</p>
           {circuit.warnings.length > 0 && <ul className="msg msg-warn" data-testid="circuit-warnings">{circuit.warnings.map((w) => <li key={w}>{w}</li>)}</ul>}
           <button type="button" className="btn btn-primary" data-testid="circuit-switch" onClick={flip} disabled={busy}>
-            Switch is {circuit.switchClosed ? 'closed' : 'open'} — flip it
+            Switch is {(switchClosed ?? circuit.switchClosed) ? 'closed' : 'open'} — flip it
           </button>
           <p className="muted small">Series DC calculation from the values on your drawing (defaults where none written).</p>
         </>

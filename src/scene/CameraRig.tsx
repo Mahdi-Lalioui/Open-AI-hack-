@@ -1,11 +1,11 @@
 import { OrbitControls } from '@react-three/drei';
 import { useFrame, useThree } from '@react-three/fiber';
-import { useEffect, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
 import type { CameraCommand } from './types';
 
-const TARGET = new THREE.Vector3(0, 0.6, 0.2);
+
 const POLAR = 0.98;
 const AZIMUTH = 0.35;
 const MIN_D = 5;
@@ -25,7 +25,8 @@ interface Anim {
   dur: number;
 }
 
-export function CameraRig({ command, reducedMotion, focus = 1 }: { command: CameraCommand | null; reducedMotion: boolean; focus?: number }) {
+export function CameraRig({ command, reducedMotion, focus = 1, targetY = 0.5 }: { command: CameraCommand | null; reducedMotion: boolean; focus?: number; targetY?: number }) {
+  const TARGET = useMemo(() => new THREE.Vector3(0, targetY, 0.2), [targetY]);
   const controls = useRef<OrbitControlsImpl>(null);
   const camera = useThree((s) => s.camera);
   const size = useThree((s) => s.size);
@@ -54,7 +55,7 @@ export function CameraRig({ command, reducedMotion, focus = 1 }: { command: Came
     camera.lookAt(TARGET);
     controls.current?.update();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [size.width, size.height, focus]);
+  }, [size.width, size.height, focus, targetY]);
 
   useEffect(() => {
     if (!command || command.nonce === lastNonce.current) return;

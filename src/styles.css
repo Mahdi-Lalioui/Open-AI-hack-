@@ -132,3 +132,9 @@ h1,h2,h3{margin:0}
 }
 @media (max-width:699px){.host-grid{padding:12px}.topbar{padding:10px 12px}.editor-grid{grid-template-columns:1fr}}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+.stage-frame{height:max(560px,calc(100vh - 100px));max-height:none}
+.stage-camera{position:absolute;right:10px;bottom:10px;display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.stage-camera .btn{background:rgba(255,253,248,.92)}
+.stage-caption{bottom:68px}
+@media (max-width:1099px){.stage-frame{height:auto;min-height:max(560px,55vh)}}
+@media (max-width:699px){.stage-frame{min-height:60vh}}

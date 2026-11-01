@@ -7,7 +7,7 @@ export const exampleCircuit = (): CircuitSpec => ({
   components: [
     { id: 'c1', type: 'battery', label: 'Battery', value: 9, x: 0.15, y: 0.5 },
     { id: 'c2', type: 'switch', label: 'Switch', value: null, x: 0.35, y: 0.2 },
-    { id: 'c3', type: 'resistor', label: 'Resistor', value: 470, x: 0.6, y: 0.2 },
+    { id: 'c3', type: 'resistor', label: 'Resistor', value: 220, x: 0.6, y: 0.2 },
     { id: 'c4', type: 'led', label: 'LED', value: 2, x: 0.85, y: 0.5 },
   ],
   wires: [

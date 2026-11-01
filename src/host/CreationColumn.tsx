@@ -132,7 +132,7 @@ export function CreationColumn({ mode, onMode, connected, reducedMotion, onBuilt
         <div className="sketch-preview" data-testid="sketch-preview">
           {preview.kind === 'none' && <p className="sketch-empty">Photograph your drawing, or try the example.</p>}
           {preview.kind === 'example' && (
-            <p className="sketch-empty">{mode === 'pet' ? 'Example pet: Pixel, a round teal critter.' : 'Example circuit: 9 V battery, switch, 470 Ω resistor, LED.'}</p>
+            <img src={mode === 'pet' ? '/example-pet.png' : '/example-circuit.png'} alt={mode === 'pet' ? 'Example pet drawing: Pixel, a round teal critter' : 'Example circuit drawing: battery, switch, resistor and LED in a loop'} />
           )}
           {preview.kind === 'upload' && <img src={preview.url} alt="Your uploaded sketch" />}
           {stamp && <span className="stamp stamp-in" aria-hidden="true">Confirmed</span>}
@@ -175,12 +175,12 @@ export function CreationColumn({ mode, onMode, connected, reducedMotion, onBuilt
   );
 }
 
-function Select<T extends string | number>({ label, value, options, onChange, testId }: { label: string; value: T; options: readonly T[]; onChange: (v: T) => void; testId?: string }) {
+function Select<T extends string | number>({ label, value, options, onChange, testId, show }: { label: string; value: T; options: readonly T[]; onChange: (v: T) => void; testId?: string; show?: (v: T) => string }) {
   return (
     <label className="field">
       <span>{label}</span>
       <select value={String(value)} data-testid={testId} onChange={(e) => onChange(options.find((o) => String(o) === e.target.value)!)}>
-        {options.map((o) => <option key={String(o)} value={String(o)}>{String(o)}</option>)}
+        {options.map((o) => <option key={String(o)} value={String(o)}>{show ? show(o) : String(o)}</option>)}
       </select>
     </label>
   );
@@ -243,9 +243,9 @@ function CircuitEditor({ circuit, onChange }: { circuit: CircuitSpec; onChange: 
       <ul className="wire-list">
         {circuit.wires.map((w, i) => (
           <li key={i} className="wire-row">
-            <Select label="From" value={w.from} options={ids} onChange={(v) => onChange({ ...circuit, wires: circuit.wires.map((x, j) => (j === i ? { ...x, from: v } : x)) })} />
+            <Select label="From" value={w.from} options={ids} show={name} onChange={(v) => onChange({ ...circuit, wires: circuit.wires.map((x, j) => (j === i ? { ...x, from: v } : x)) })} />
             <span aria-hidden="true">→</span>
-            <Select label="To" value={w.to} options={ids} onChange={(v) => onChange({ ...circuit, wires: circuit.wires.map((x, j) => (j === i ? { ...x, to: v } : x)) })} />
+            <Select label="To" value={w.to} options={ids} show={name} onChange={(v) => onChange({ ...circuit, wires: circuit.wires.map((x, j) => (j === i ? { ...x, to: v } : x)) })} />
             <button type="button" className="btn btn-ghost btn-small" aria-label={`Remove wire ${name(w.from)} to ${name(w.to)}`}
               onClick={() => onChange({ ...circuit, wires: circuit.wires.filter((_, j) => j !== i) })}>Remove</button>
           </li>
